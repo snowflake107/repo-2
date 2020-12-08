@@ -17,7 +17,7 @@ Unlock the power of the Audition. Support custom file formats, convert to and fr
 
 <TextBlock slots="image, heading, text" width="33%" theme="light" isCentered />
 
-![CC icon](images/Smock_AssetCheck_18_N.svg)
+![alt text](images/audition-features1.jpg)
 
 ### Automate complex workflows
 
@@ -25,7 +25,7 @@ Build panels that streamline how media is managed. Simplify the search and inges
 
 <TextBlock slots="image, heading, text" width="33%" theme="light" isCentered />
 
-![CC icon](images/Smock_FileWorkflow_18_N.svg)
+![alt text](images/audition-features2.jpg)
 
 ### Integrate control surface hardware 
 
@@ -33,7 +33,7 @@ Use the two-way communication capabilities of the control surface API to sync Au
 
 <TextBlock slots="image, heading, text" width="33%" theme="light" isCentered />
 
-![CC icon](images/Smock_GearsEdit_18_N.svg)
+![alt text](images/audition-features3.png)
 
 ### Add support for new file formats 
 
@@ -41,7 +41,7 @@ Build plug-ins to support the import and export of custom file formats, and conv
 
 <TextBlock slots="image, heading, text" width="33%" theme="dark" isCentered />
 
-![CC icon](images/S_IlluExternalHardware_96.svg)
+![alt text](images/S_IlluExternalHardware_96.svg)
 
 ### Integrate external control hardware 
 
@@ -50,7 +50,7 @@ Use the two-way communication capabilities of the control surface plug-in API to
 
 <TextBlock slots="image, heading, text" width="33%" theme="dark" isCentered />
 
-![CC icon](images/S_IlluCustomFileFormats_96.svg)
+![alt text](images/S_IlluCustomFileFormats_96.svg)
 
 ### Add support for new file formats 
 
@@ -58,7 +58,7 @@ Support the import and export of custom file formats, or extended metadata.
 
 <TextBlock slots="image, heading, text" width="33%" theme="dark" isCentered />
 
-![CC icon](images/S_IlluMultitrack_96.svg)
+![alt text](images/S_IlluMultitrack_96.svg)
 
 ### Multitrack session import/export 
 
@@ -66,7 +66,7 @@ Create or convert to and from native Audition multitrack sessions.
 
 <TextBlock slots="image, heading, text" width="33%" theme="light" isCentered />
 
-![CC icon](images/S_Illu3rdPartyWebService_96.svg)
+![alt text](images/S_Illu3rdPartyWebService_96.svg)
 
 ### Integrate web services 
 
@@ -75,7 +75,7 @@ Host your web service interface in a dedicated panel, with full drag-and-drop, m
 
 <TextBlock slots="image, heading, text" width="33%" theme="light" isCentered />
 
-![CC icon](images/S_IlluManipulateMetadata_96.svg)
+![alt text](images/S_IlluManipulateMetadata_96.svg)
 
 #### Manipulate metadata 
 
@@ -83,7 +83,7 @@ Get and set all metadata associated with project items, including all supported 
 
 <TextBlock slots="image, heading, text" width="33%" theme="light" isCentered />
 
-![CC icon](images/S_IlluPreviewAudio_96.svg)
+![alt text](images/S_IlluPreviewAudio_96.svg)
 
 #### Preview and control 
 
