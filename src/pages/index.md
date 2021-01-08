@@ -23,7 +23,7 @@ Support custom file formats, convert to and from multitrack sessions, and integr
 
 ### Automate complex workflows
 
-Build panels that streamline how media is managed. Simplify the search and ingest of source media, and automate tedious and error-prone steps for final delivery.
+Simplify the search and ingest of source media, and automate tedious and error-prone steps for final delivery.
 
 <TextBlock slots="image, heading, text" width="33%" theme="light" isCentered />
 
@@ -56,7 +56,7 @@ Create or convert to and from native Audition multitrack sessions.
 
 ### Integrate web services 
 
-Host your web service interface in a dedicated panel, with full drag-and-drop, metadata transfer, and file analysis support using standard web frameworks or Node.js.
+Host your web service interface in a dedicated panel, with full drag-and-drop, metadata transfer, and file analysis support.
 
 
 <TextBlock slots="image, heading, text" width="25%" theme="light" isCentered />
@@ -65,7 +65,7 @@ Host your web service interface in a dedicated panel, with full drag-and-drop, m
 
 #### Manipulate metadata 
 
-Get and set all metadata associated with project items, including all supported marker types and Audition private project metadata.
+Get and set all metadata associated with project items, including marker types and project metadata.
 
 <TextBlock slots="image, heading, text" width="25%" theme="light" isCentered />
 
@@ -73,9 +73,7 @@ Get and set all metadata associated with project items, including all supported 
 
 #### Preview and control 
 
-Preview supported footage and programmatically control playback or other events, even without bringing the footage into the current session.
-
-
+Preview supported footage and programmatically control playback or other events.
 
 <TextBlock slots="image, heading, text1, buttons" theme="dark" />
 
