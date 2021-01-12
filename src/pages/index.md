@@ -19,7 +19,7 @@ Support custom file formats, convert to and from multitrack sessions, and integr
 
 <TextBlock slots="image, heading, text" width="33%" theme="light" isCentered />
 
-![alt text](images/audition-features1.jpg)
+![Stock image of audio sliders](images/audition-features1.jpg)
 
 ### Automate complex workflows
 
@@ -27,7 +27,7 @@ Simplify the search and ingest of source media, and automate tedious and error-p
 
 <TextBlock slots="image, heading, text" width="33%" theme="light" isCentered />
 
-![alt text](images/audition-features2.jpg)
+![Stock image of hands moving audio sliders](images/audition-features2.jpg)
 
 ### Integrate control surface hardware 
 
@@ -35,7 +35,7 @@ Use the two-way communication capabilities of the control surface API to sync Au
 
 <TextBlock slots="image, heading, text" width="33%" theme="light" isCentered />
 
-![alt text](images/audition-features3.png)
+![Stock image of audio waveforms](images/audition-features3.png)
 
 ### Add support for new file formats 
 
@@ -44,7 +44,7 @@ Build plug-ins to support the import and export of custom file formats, and conv
 
 <TextBlock slots="image, heading, text" width="25%" theme="light" isCentered />
 
-![alt text](images/S_IlluMultitrack_96.svg)
+![Multitrack icon](images/S_IlluMultitrack_96.svg)
 
 ### Multitrack session import/export 
 
@@ -52,7 +52,7 @@ Create or convert to and from native Audition multitrack sessions.
 
 <TextBlock slots="image, heading, text" width="25%" theme="light" isCentered />
 
-![alt text](images/S_Illu3rdPartyWebService_96.svg)
+![Web service icon](images/S_Illu3rdPartyWebService_96.svg)
 
 ### Integrate web services 
 
@@ -61,7 +61,7 @@ Host your web service interface in a dedicated panel, with full drag-and-drop, m
 
 <TextBlock slots="image, heading, text" width="25%" theme="light" isCentered />
 
-![alt text](images/S_IlluManipulateMetadata_96.svg)
+![Metadata icon](images/S_IlluManipulateMetadata_96.svg)
 
 #### Manipulate metadata 
 
