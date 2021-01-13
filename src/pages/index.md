@@ -3,13 +3,15 @@ title: Creative Cloud - Audition
 description: This is the home page of Audition APIs 
 ---
 
-<Hero slots="image, heading, text, buttons" variant="halfwidth" />
+<Hero slots="image, icon, heading, text, buttons" variant="halfwidth" />
 
 ![Creative Cloud banner](images/cc-hero.png)
 
-#  Your audio workstation, turbo-powered.
+![Audition icon](images/au_appicon_256.svg)
 
-Unlock the power of the Audition. Support custom file formats, convert to and from multitrack sessions, and integrate custom control surfaces. Automate complex tasks, connect to web services, and add panels that seamlessly fit into the editing workspace.
+#  Unlock the power of the Audition.
+
+Support custom file formats, convert to and from multitrack sessions, and integrate custom control surfaces. Automate complex tasks, connect to web services, and add panels that seamlessly fit into the editing workspace.
 
 * [Get the SDKs](https://console.adobe.io/downloads/au)
 
@@ -17,15 +19,15 @@ Unlock the power of the Audition. Support custom file formats, convert to and fr
 
 <TextBlock slots="image, heading, text" width="33%" theme="light" isCentered />
 
-![alt text](images/audition-features1.jpg)
+![Stock image of audio sliders](images/audition-features1.jpg)
 
 ### Automate complex workflows
 
-Build panels that streamline how media is managed. Simplify the search and ingest of source media, and automate tedious and error-prone steps for final delivery.
+Simplify the search and ingest of source media, and automate tedious and error-prone steps for final delivery.
 
 <TextBlock slots="image, heading, text" width="33%" theme="light" isCentered />
 
-![alt text](images/audition-features2.jpg)
+![Stock image of hands moving audio sliders](images/audition-features2.jpg)
 
 ### Integrate control surface hardware 
 
@@ -33,97 +35,55 @@ Use the two-way communication capabilities of the control surface API to sync Au
 
 <TextBlock slots="image, heading, text" width="33%" theme="light" isCentered />
 
-![alt text](images/audition-features3.png)
+![Stock image of audio waveforms](images/audition-features3.png)
 
 ### Add support for new file formats 
 
 Build plug-ins to support the import and export of custom file formats, and convert to and from native Audition multitrack sessions.
 
-<TextBlock slots="image, heading, text" width="33%" theme="dark" isCentered />
 
-![alt text](images/S_IlluExternalHardware_96.svg)
+<TextBlock slots="image, heading, text" width="25%" theme="light" isCentered />
 
-### Integrate external control hardware 
-
-Use the two-way communication capabilities of the control surface plug-in API to sync Premiere Pro with hardware faders, VU meters, color grading controls, and more.
-
-
-<TextBlock slots="image, heading, text" width="33%" theme="dark" isCentered />
-
-![alt text](images/S_IlluCustomFileFormats_96.svg)
-
-### Add support for new file formats 
-
-Support the import and export of custom file formats, or extended metadata.
-
-<TextBlock slots="image, heading, text" width="33%" theme="dark" isCentered />
-
-![alt text](images/S_IlluMultitrack_96.svg)
+![Multitrack icon](images/S_IlluMultitrack_96.svg)
 
 ### Multitrack session import/export 
 
 Create or convert to and from native Audition multitrack sessions.
 
-<TextBlock slots="image, heading, text" width="33%" theme="light" isCentered />
+<TextBlock slots="image, heading, text" width="25%" theme="light" isCentered />
 
-![alt text](images/S_Illu3rdPartyWebService_96.svg)
+![Web service icon](images/S_Illu3rdPartyWebService_96.svg)
 
 ### Integrate web services 
 
-Host your web service interface in a dedicated panel, with full drag-and-drop, metadata transfer, and file analysis support using standard web frameworks or Node.js.
+Host your web service interface in a dedicated panel, with full drag-and-drop, metadata transfer, and file analysis support.
 
 
-<TextBlock slots="image, heading, text" width="33%" theme="light" isCentered />
+<TextBlock slots="image, heading, text" width="25%" theme="light" isCentered />
 
-![alt text](images/S_IlluManipulateMetadata_96.svg)
+![Metadata icon](images/S_IlluManipulateMetadata_96.svg)
 
 #### Manipulate metadata 
 
-Get and set all metadata associated with project items, including all supported marker types and Audition private project metadata.
+Get and set all metadata associated with project items, including marker types and project metadata.
 
-<TextBlock slots="image, heading, text" width="33%" theme="light" isCentered />
+<TextBlock slots="image, heading, text" width="25%" theme="light" isCentered />
 
 ![alt text](images/S_IlluPreviewAudio_96.svg)
 
 #### Preview and control 
 
-Preview supported footage and programmatically control playback or other events, even without bringing the footage into the current session.
+Preview supported footage and programmatically control playback or other events.
 
+<TextBlock slots="image, heading, text1, buttons" theme="dark" />
 
+![Adobe Stock image of collaborators](images/AdobeStock_252386533.697x377.png)
 
-<TextBlock slots="image, heading, text, links" width="33%" theme="dark" isCentered />
+### Find Powerful Partners
 
-![generic logo](images/audition_showcase1.png)
+We’ve found that one of the greatest challenges our customers have is navigating through a large partner eco-system to find the solution that best suits their unique workflow requirements. The Partner Finder was designed to make this process easier by including a company overviews, use case information and other useful information about these companies and their products.
 
-### SESBackup 
-
-Easily and quickly locate and backup your Adobe Audition session files.
-
-* [Learn more](https://creative.adobe.com/addons/products/2953#.WTc_98m1tTY)
-
-
-<TextBlock slots="image, heading, text, links" width="33%" theme="dark" isCentered />
-
-![generic logo](images/audition_showcase2.png)
-
-### MediaSweeper 
-
-Identify and manage unused files from your Audition sessions (ses, xml, and sesx).
-
-* [Learn more](https://creative.adobe.com/addons/products/3147#.WTdAqcm1tTY)
-
-
-
-<TextBlock slots="image, heading, text, links" width="33%" theme="dark" isCentered />
-
-![generic logo](images/audition_showcase3.png)
-
-### Punch and Roll 
-
-Perform non-destructive punch-ins in multitrack sessions, with adjustable crossover blends and preroll times, 're-punch', and more.
-
-* [Learn more](https://exchange.adobe.com/addons/products/19853#.Wi4XyRNSy3U)
-
+* [Video & Audio Partner Finder](https://adobe-video-partner-finder.com/)
 
 
 <SummaryBlock slots="image, heading, text, buttons" background="rgb(246, 16, 27)" />
