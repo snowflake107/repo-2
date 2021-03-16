@@ -86,7 +86,7 @@ We’ve found that one of the greatest challenges our customers have is navigati
 * [Video & Audio Partner Finder](https://adobe-video-partner-finder.com/)
 
 
-<SummaryBlock slots="image, heading, text, buttons" background="rgb(246, 16, 27)" />
+<SummaryBlock slots="image, heading, text, buttons" background="rgb(9, 90, 186)" />
 
 ![CC banner](images/cc-banner.png)
 
