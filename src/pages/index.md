@@ -5,9 +5,9 @@ description: This is the home page of Audition APIs
 
 <Hero slots="image, icon, heading, text, buttons" variant="halfwidth" />
 
-![Creative Cloud banner](images/cc-hero.png)
+![Creative Cloud banner](https://adobe.io/shared/images/cc-hero.png)
 
-![Audition icon](images/au_appicon_256.svg)
+![Audition icon](https://adobe.io/shared/icons/au_appicon_64.svg)
 
 #  Unlock the power of the Audition.
 
@@ -88,7 +88,7 @@ We’ve found that one of the greatest challenges our customers have is navigati
 
 <SummaryBlock slots="image, heading, text, buttons" background="rgb(9, 90, 186)" />
 
-![CC banner](images/cc-banner.png)
+![CC banner](https://adobe.io/shared/images/cc-banner.png)
 
 ## Subscribe to the Creative Cloud developer newsletter 
 
