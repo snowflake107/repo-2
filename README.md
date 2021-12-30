@@ -573,19 +573,26 @@ region                  = us-east-1
 ```
 ## Building
 
-To build this software on osx clone to the repo to `$GOPATH/src/github.com/versent/saml2aws` and ensure you have `$GOPATH/bin` in your `$PATH`.
-
-```
-make mod
-```
-
-Install the binary to `$GOPATH/bin`.
+To build this software, clone this repository and change dir to the root of it.
+Then either execute
 
 ```
 make install
 ```
 
-Then to test the software just run.
+if you have configured $GOPATH (which will output the binary to the `bin` directory under $GOPATH) or
+
+```
+make build
+```
+
+which will use [goreleaser](https://github.com/goreleaser/goreleaser) to build targets. If in Linux, goreleaser will build with both .goreleaser-non-linux.yml and goreleaser-linux.yml configurations.
+Otherwise only the .goreleaser-non-linux.yml configuration will be used. Binaries can then be found under the dist/ directory.
+
+
+## Testing and coverage
+
+To test the software and print coverage just run.
 
 ```
 make test

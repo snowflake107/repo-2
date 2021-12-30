@@ -1,18 +1,23 @@
 NAME=saml2aws
 ARCH=$(shell uname -m)
-VERSION=2.28.0
+VERSION=2.28.5
 ITERATION := 1
 
-GOLANGCI_VERSION = 1.32.0
-GORELEASER_VERSION = 0.157.0
+GOLANGCI_VERSION = 1.39.0
+GORELEASER_VERSION = 0.162.0
 
 SOURCE_FILES?=$$(go list ./... | grep -v /vendor/)
 TEST_PATTERN?=.
 TEST_OPTIONS?=
 
 BIN_DIR := $(CURDIR)/bin
+UNAME := $(shell uname 2>/dev/null || echo Unknown)
+GORELEASER_CMD := $(BIN_DIR)/goreleaser build --snapshot --rm-dist
 
-ci: prepare test
+ifeq ($(UNAME),Linux)
+	BFLAGS := -tags=hidraw
+	GORELEASER_CMD_LINUX := $(GORELEASER_CMD) --config .goreleaser-linux.yml
+endif
 
 $(BIN_DIR)/golangci-lint: $(BIN_DIR)/golangci-lint-${GOLANGCI_VERSION}
 	@ln -sf golangci-lint-${GOLANGCI_VERSION} $(BIN_DIR)/golangci-lint
@@ -43,16 +48,16 @@ lint-fix: $(BIN_DIR)/golangci-lint
 
 fmt: lint-fix
 
-install:
-	go install ./cmd/saml2aws
-.PHONY: mod
+install: mod
+	go install $(BFLAGS) -ldflags "-X main.Version=$(VERSION)" ./cmd/saml2aws
 
-build: $(BIN_DIR)/goreleaser
-	$(BIN_DIR)/goreleaser build --snapshot --rm-dist
+build: mod $(BIN_DIR)/goreleaser
+	$(GORELEASER_CMD) --config .goreleaser-non-linux.yml
+	$(GORELEASER_CMD_LINUX)
 .PHONY: build
 
 clean:
-	@rm -fr ./build
+	@rm -fr ./dist
 .PHONY: clean
 
 generate-mocks:
