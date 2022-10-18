@@ -635,8 +635,6 @@ func (ctx *ReaperContext) reapOldNodes(w ReaperAwsAuth) error {
 				ctx.TerminatedInstances++
 				ctx.exposeMetric(instance.NodeName, instance.InstanceID, terminationReasonHealthy, NodeReaperResultMetricName, float64(ctx.TerminatedInstances))
 
-				log.Infof("starting deletion throttle wait -> %vs", ctx.AgeReapThrottle)
-				time.Sleep(time.Second * time.Duration(ctx.AgeReapThrottle))
 			} else {
 				log.Warnf("dry run is on, '%v' will not be terminated", instance.NodeName)
 			}
@@ -656,6 +654,11 @@ func (ctx *ReaperContext) reapOldNodes(w ReaperAwsAuth) error {
 		// only return on error, otherwise continue looping
 		if err != nil {
 			return err
+		}
+
+		if !ctx.DryRun {
+			log.Infof("starting deletion throttle wait -> %vs", ctx.AgeReapThrottle)
+			time.Sleep(time.Second * time.Duration(ctx.AgeReapThrottle))
 		}
 	}
 	log.Infof("reap cycle completed, terminated %v instances", ctx.TerminatedInstances)
