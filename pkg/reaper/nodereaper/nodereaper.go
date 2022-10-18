@@ -656,8 +656,10 @@ func (ctx *ReaperContext) reapOldNodes(w ReaperAwsAuth) error {
 			return err
 		}
 
-		log.Infof("starting deletion throttle wait -> %vs", ctx.AgeReapThrottle)
-		time.Sleep(time.Second * time.Duration(ctx.AgeReapThrottle))
+		if !ctx.DryRun {
+			log.Infof("starting deletion throttle wait -> %vs", ctx.AgeReapThrottle)
+			time.Sleep(time.Second * time.Duration(ctx.AgeReapThrottle))
+		}
 	}
 	log.Infof("reap cycle completed, terminated %v instances", ctx.TerminatedInstances)
 	return nil
