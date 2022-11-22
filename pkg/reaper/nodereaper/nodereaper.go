@@ -533,6 +533,9 @@ func (ctx *ReaperContext) reapOldNodes(w ReaperAwsAuth) error {
 		// Skip if target node is self
 		if instance.NodeName == ctx.SelfNode {
 			log.Infof("self node termination attempted, skipping")
+			if !ctx.DryRun {
+				ctx.annotateNode(instance.NodeName, "governor/status", "self-reap")
+			}
 			continue
 		}
 
