@@ -218,6 +218,21 @@ func (ctx *ReaperContext) annotateNode(nodeName, annotationKey, annotationValue 
 	return nil
 }
 
+func (ctx *ReaperContext) labelNode(nodeName, labelKey, labelValue string) error {
+	label := fmt.Sprintf("%v=%v", labelKey, labelValue)
+	labelArgs := []string{"label", "--overwrite", "node", nodeName, label}
+	labelCommand := ctx.KubectlLocalPath
+	if ctx.DryRun {
+		log.Warnf("dry run is on, node labels unchanged")
+		return nil
+	}
+	_, err := runCommand(labelCommand, labelArgs)
+	if err != nil {
+		log.Errorf("failed to annotate node %v", nodeName)
+	}
+	return err
+}
+
 func (ctx *ReaperContext) publishEvent(namespace string, event *v1.Event) error {
 	log.Infof("publishing event: %v", event.Reason)
 	_, err := ctx.KubernetesClient.CoreV1().Events(namespace).Create(event)
