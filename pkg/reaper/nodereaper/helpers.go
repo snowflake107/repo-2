@@ -228,7 +228,7 @@ func (ctx *ReaperContext) labelNode(nodeName, labelKey, labelValue string) error
 	}
 	_, err := runCommand(labelCommand, labelArgs)
 	if err != nil {
-		log.Errorf("failed to annotate node %v", nodeName)
+		log.Errorf("failed to label node %v", nodeName)
 	}
 	return err
 }
