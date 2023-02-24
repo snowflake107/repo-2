@@ -172,6 +172,13 @@ func (ctx *ReaperContext) drainNode(gctx context.Context, name string, dryRun bo
 	if err := ctx.annotateNode(name, stateAnnotationKey, drainingStateName); err != nil {
 		log.Warnf("failed to update state annotation on node '%v'", name)
 	}
+
+	if ctx.DeregisterFromLoadBalancer {
+		if err := ctx.labelNode(name, v1.LabelNodeExcludeBalancers, "governor"); err != nil {
+			log.Warnf("failed to exclude node from load balancers '%v'", name)
+		}
+	}
+
 	cmdOut, err := runCommandWithContext(gctx, drainCommand, drainArgs, ctx.DrainTimeoutSeconds)
 	log.Infof("drain command output: %s", cmdOut)
 	if err != nil {
@@ -183,7 +190,9 @@ func (ctx *ReaperContext) drainNode(gctx context.Context, name string, dryRun bo
 		}
 		log.Warnf(logMsg)
 		ctx.uncordonNode(name, dryRun, ctx.IgnoreFailure)
-		ctx.removeLabelFromNode(name, v1.LabelNodeExcludeBalancers)
+		if !ctx.IgnoreFailure && ctx.DeregisterFromLoadBalancer {
+			ctx.removeLabelFromNode(name, v1.LabelNodeExcludeBalancers)
+		}
 		return err
 	}
 	ctx.DrainedInstances++

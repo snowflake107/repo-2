@@ -613,8 +613,6 @@ func (ctx *ReaperContext) reapOldNodes(gctx context.Context, w ReaperAwsAuth) er
 				}
 			}()
 
-			ctx.labelNode(instance.NodeName, v1.LabelNodeExcludeBalancers, "governor")
-
 			err = ctx.drainNode(gctx, instance.NodeName, ctx.DryRun)
 			if err != nil {
 				return err
