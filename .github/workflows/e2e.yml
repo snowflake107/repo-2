@@ -14,8 +14,8 @@ on:
       tag:
         description: 'Additional tag to push'
         required: false
-  schedule:
-    - cron: '0 10 * * *'
+  # schedule:
+  #  - cron: '0 10 * * *'
   push:
     branches:
       - 'master'
