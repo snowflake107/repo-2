@@ -16,17 +16,19 @@ limitations under the License.
 package podreaper
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"sort"
 	"time"
 
 	"github.com/pkg/errors"
-
-	"github.com/keikoproj/governor/pkg/reaper/common"
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/keikoproj/governor/pkg/reaper/common"
 )
 
 var log = logrus.New()
@@ -60,14 +62,14 @@ const (
 )
 
 // Run is the main runner function for pod-reaper, and will initialize and start the pod-reaper
-func Run(ctx *ReaperContext) error {
+func Run(gctx context.Context, ctx *ReaperContext) error {
 	log.SetFormatter(&logrus.TextFormatter{
 		FullTimestamp: true,
 	})
 
 	ctx.exposeMetric(PodReaperResultMetricName, TerminatedPodReason, 0)
 
-	err := ctx.getPods()
+	err := ctx.getPods(gctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to list pods")
 	}
@@ -81,7 +83,7 @@ func Run(ctx *ReaperContext) error {
 		return nil
 	}
 
-	err = ctx.Reap()
+	err = ctx.Reap(gctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to reap pods")
 	}
@@ -89,18 +91,18 @@ func Run(ctx *ReaperContext) error {
 	return nil
 }
 
-func (ctx *ReaperContext) Reap() error {
-	err := ctx.reapPods(ctx.StuckPods)
+func (ctx *ReaperContext) Reap(gctx context.Context) error {
+	err := ctx.reapPods(gctx, ctx.StuckPods)
 	if err != nil {
 		return errors.Wrap(err, "failed to reap stuck pods")
 	}
 
-	err = ctx.reapPods(ctx.CompletedPods)
+	err = ctx.reapPods(gctx, ctx.CompletedPods)
 	if err != nil {
 		return errors.Wrap(err, "failed to reap completed pods")
 	}
 
-	err = ctx.reapPods(ctx.FailedPods)
+	err = ctx.reapPods(gctx, ctx.FailedPods)
 	if err != nil {
 		return errors.Wrap(err, "failed to reap failed pods")
 	}
@@ -162,17 +164,17 @@ func (ctx *ReaperContext) isExcludedNamespace(namespace, reapOperation string) b
 	return false
 }
 
-func (ctx *ReaperContext) reapPods(pods map[string]string) error {
+func (ctx *ReaperContext) reapPods(gctx context.Context, pods map[string]string) error {
 	corev1 := ctx.KubernetesClient.CoreV1()
 	// Iterate stuck pods and reap if not dryRun
 	for pod, namespace := range pods {
 		log.Infof("reaping %v/%v", namespace, pod)
 		gracePeriod := int64(0)
-		forceDeleteOpts := &metav1.DeleteOptions{}
+		forceDeleteOpts := metav1.DeleteOptions{}
 		forceDeleteOpts.GracePeriodSeconds = &gracePeriod
 
 		// Dump pod json
-		podObject, err := corev1.Pods(namespace).Get(pod, metav1.GetOptions{})
+		podObject, err := corev1.Pods(namespace).Get(gctx, pod, metav1.GetOptions{})
 		if err != nil {
 			log.Warnf("failed to dump pod spec, %v", err)
 		}
@@ -185,7 +187,7 @@ func (ctx *ReaperContext) reapPods(pods map[string]string) error {
 		log.Infof("pod dump: %v", string(podDump))
 
 		if !ctx.DryRun {
-			err := corev1.Pods(namespace).Delete(pod, forceDeleteOpts)
+			err := corev1.Pods(namespace).Delete(gctx, pod, forceDeleteOpts)
 			if err != nil {
 				return err
 			}
@@ -348,19 +350,19 @@ func (ctx *ReaperContext) deriveStuckPods() {
 	}
 }
 
-func (ctx *ReaperContext) getPods() error {
+func (ctx *ReaperContext) getPods(gctx context.Context) error {
 	log.Infoln("starting scan cycle")
 	terminatingPods := &v1.PodList{}
 	corev1 := ctx.KubernetesClient.CoreV1()
 
 	// get pods in all namespaces
-	allPods, err := corev1.Pods("").List(metav1.ListOptions{})
+	allPods, err := corev1.Pods("").List(gctx, metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
 	ctx.AllPods = allPods
 
-	namespaces, err := ctx.KubernetesClient.CoreV1().Namespaces().List(metav1.ListOptions{})
+	namespaces, err := ctx.KubernetesClient.CoreV1().Namespaces().List(gctx, metav1.ListOptions{})
 	if err != nil {
 		return err
 	}

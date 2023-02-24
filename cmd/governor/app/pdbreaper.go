@@ -19,8 +19,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/keikoproj/governor/pkg/reaper/pdbreaper"
 	"github.com/spf13/cobra"
+
+	"github.com/keikoproj/governor/pkg/reaper/pdbreaper"
 )
 
 var pdbReaperArgs pdbreaper.Args
@@ -31,7 +32,7 @@ var pdbReaperCmd = &cobra.Command{
 	Short: "pdb invokes the pdb reaper",
 	Long:  `reap finds and force deletes pod disruption budgets which are stuck or misconfigured`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := pdbreaper.Run(&pdbReaperArgs); err != nil {
+		if err := pdbreaper.Run(cmd.Context(), &pdbReaperArgs); err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}

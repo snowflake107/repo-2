@@ -16,17 +16,19 @@ limitations under the License.
 package pdbreaper
 
 import (
+	"context"
 	"flag"
 	"io/ioutil"
 	"testing"
 	"time"
 
-	"github.com/keikoproj/governor/pkg/reaper/common"
 	corev1 "k8s.io/api/core/v1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes/fake"
+
+	"github.com/keikoproj/governor/pkg/reaper/common"
 )
 
 var (
@@ -72,7 +74,7 @@ func _fakeAPI(u *ReaperUnitTest) {
 		namespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{
 			Name: n.Name,
 		}}
-		_, err := u.FakeReaper.KubernetesClient.CoreV1().Namespaces().Create(namespace)
+		_, err := u.FakeReaper.KubernetesClient.CoreV1().Namespaces().Create(context.Background(), namespace, metav1.CreateOptions{})
 		if err != nil {
 			panic(err)
 		}
@@ -106,7 +108,7 @@ func _fakeAPI(u *ReaperUnitTest) {
 		}
 
 		pod.Status.StartTime = &metav1.Time{Time: time.Now().Add(time.Duration(-100) * time.Second)}
-		_, err := u.FakeReaper.KubernetesClient.CoreV1().Pods(p.Namespace).Create(pod)
+		_, err := u.FakeReaper.KubernetesClient.CoreV1().Pods(p.Namespace).Create(context.Background(), pod, metav1.CreateOptions{})
 		if err != nil {
 			panic(err)
 		}
@@ -124,11 +126,11 @@ func _fakeAPI(u *ReaperUnitTest) {
 				Selector:       p.Selector,
 			},
 			Status: policyv1beta1.PodDisruptionBudgetStatus{
-				PodDisruptionsAllowed: p.PodDisruptionsAllowed,
-				ExpectedPods:          p.ExpectedPods,
+				DisruptionsAllowed: p.PodDisruptionsAllowed,
+				ExpectedPods:       p.ExpectedPods,
 			},
 		}
-		_, err := u.FakeReaper.KubernetesClient.PolicyV1beta1().PodDisruptionBudgets(p.Namespace).Create(pdb)
+		_, err := u.FakeReaper.KubernetesClient.PolicyV1beta1().PodDisruptionBudgets(p.Namespace).Create(context.Background(), pdb, metav1.CreateOptions{})
 		if err != nil {
 			panic(err)
 		}
@@ -139,7 +141,7 @@ func (u *ReaperUnitTest) Run(t *testing.T) {
 
 	_fakeAPI(u)
 
-	err := u.FakeReaper.execute()
+	err := u.FakeReaper.execute(context.Background())
 	if err != nil {
 		t.Fatalf("execution failed: %v", err.Error())
 	}

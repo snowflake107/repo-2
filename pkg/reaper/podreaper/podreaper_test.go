@@ -16,6 +16,7 @@ limitations under the License.
 package podreaper
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -25,10 +26,11 @@ import (
 
 	"github.com/Pallinder/go-randomdata"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/keikoproj/governor/pkg/reaper/common"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
+
+	"github.com/keikoproj/governor/pkg/reaper/common"
 )
 
 var loggingEnabled bool
@@ -126,7 +128,7 @@ func loadFakeAPI(ctx *ReaperContext) {
 
 	// Create fake namespaces
 	for _, ns := range fakeNamespaces {
-		ctx.KubernetesClient.CoreV1().Namespaces().Create(ns)
+		ctx.KubernetesClient.CoreV1().Namespaces().Create(context.Background(), ns, metav1.CreateOptions{})
 	}
 }
 
@@ -190,14 +192,14 @@ func createFakePods(pods []FakePod, ctx *ReaperContext) {
 			pod.Status.ContainerStatuses = append(pod.Status.ContainerStatuses, runningContainerStatus)
 		}
 
-		ctx.KubernetesClient.CoreV1().Pods(c.podNamespace).Create(pod)
+		ctx.KubernetesClient.CoreV1().Pods(c.podNamespace).Create(context.Background(), pod, metav1.CreateOptions{})
 	}
 }
 
 func (u *ReaperUnitTest) Run(t *testing.T, timeTest bool) {
 	createFakePods(u.Pods, u.FakeReaper)
 	start := time.Now()
-	Run(u.FakeReaper)
+	Run(context.Background(), u.FakeReaper)
 	secondsSince := int(time.Since(start).Seconds())
 
 	if timeTest {

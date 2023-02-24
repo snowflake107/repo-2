@@ -16,12 +16,12 @@ limitations under the License.
 package pdbreaper
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"reflect"
 	"time"
 
-	"github.com/keikoproj/governor/pkg/reaper/common"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
@@ -29,6 +29,8 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+
+	"github.com/keikoproj/governor/pkg/reaper/common"
 )
 
 var log = logrus.New()
@@ -55,14 +57,14 @@ var EventReasons = [...]string{EventReasonPodDisruptionBudgetDeleted, EventReaso
 	EventReasonBlockingCrashLoopDetected, EventReasonBlockingNotReadyStateDetected}
 
 // Run is the main runner function for pdb-reaper, and will initialize and start the pdb-reaper
-func Run(args *Args) error {
+func Run(gctx context.Context, args *Args) error {
 	log.SetFormatter(&logrus.TextFormatter{
 		FullTimestamp: true,
 	})
 
 	ctx := NewReaperContext(args)
 
-	err := ctx.execute()
+	err := ctx.execute(gctx)
 	if err != nil {
 		return errors.Wrap(err, "execution failed")
 	}
@@ -70,32 +72,32 @@ func Run(args *Args) error {
 	return nil
 }
 
-func (ctx *ReaperContext) execute() error {
+func (ctx *ReaperContext) execute(gctx context.Context) error {
 	log.Info("pdb-reaper starting")
 
-	if err := ctx.scan(); err != nil {
+	if err := ctx.scan(gctx); err != nil {
 		return errors.Wrap(err, "failed to scan cluster")
 	}
 
-	if err := ctx.reap(); err != nil {
+	if err := ctx.reap(gctx); err != nil {
 		return errors.Wrap(err, "failed to reap PDBs")
 	}
 	return nil
 }
 
-func (ctx *ReaperContext) reap() error {
+func (ctx *ReaperContext) reap(gctx context.Context) error {
 
-	err := ctx.handleMultipleDisruptionBudgets()
+	err := ctx.handleMultipleDisruptionBudgets(gctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to handle multiple PDBs")
 	}
 
-	err = ctx.handleBlockingDisruptionBudgets()
+	err = ctx.handleBlockingDisruptionBudgets(gctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to handle blocking PDBs")
 	}
 
-	err = ctx.handleReapableDisruptionBudgets()
+	err = ctx.handleReapableDisruptionBudgets(gctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to handle reapable PDBs")
 	}
@@ -103,12 +105,12 @@ func (ctx *ReaperContext) reap() error {
 	return nil
 }
 
-func (ctx *ReaperContext) scan() error {
+func (ctx *ReaperContext) scan(gctx context.Context) error {
 
 	var (
 		namespacedPDBs = make(map[string][]policyv1beta1.PodDisruptionBudget)
 	)
-	pdbs, err := ctx.KubernetesClient.PolicyV1beta1().PodDisruptionBudgets("").List(metav1.ListOptions{})
+	pdbs, err := ctx.KubernetesClient.PolicyV1beta1().PodDisruptionBudgets("").List(gctx, metav1.ListOptions{})
 	if err != nil {
 		return errors.Wrap(err, "failed to list PDBs")
 	}
@@ -140,8 +142,8 @@ func (ctx *ReaperContext) scan() error {
 		}
 
 		// if pdb is allowing disruptions, it is non-blocking
-		if pdb.Status.PodDisruptionsAllowed != 0 {
-			log.Infof("ignoring pdb %v since it is allowing %v disruptions", pdbNamespacedName(pdb), pdb.Status.PodDisruptionsAllowed)
+		if pdb.Status.DisruptionsAllowed != 0 {
+			log.Infof("ignoring pdb %v since it is allowing %v disruptions", pdbNamespacedName(pdb), pdb.Status.DisruptionsAllowed)
 			continue
 		}
 		// if no pods match the selector / expected, it is non-blocking
@@ -157,7 +159,7 @@ func (ctx *ReaperContext) scan() error {
 	return nil
 }
 
-func (ctx *ReaperContext) handleReapableDisruptionBudgets() error {
+func (ctx *ReaperContext) handleReapableDisruptionBudgets(gctx context.Context) error {
 	for _, pdb := range ctx.ReapablePodDisruptionBudgets {
 		var (
 			name      = pdb.GetName()
@@ -176,14 +178,14 @@ func (ctx *ReaperContext) handleReapableDisruptionBudgets() error {
 			continue
 		}
 
-		err = ctx.KubernetesClient.PolicyV1beta1().PodDisruptionBudgets(namespace).Delete(name, &metav1.DeleteOptions{})
+		err = ctx.KubernetesClient.PolicyV1beta1().PodDisruptionBudgets(namespace).Delete(gctx, name, metav1.DeleteOptions{})
 		if err != nil {
 			if kerrors.IsNotFound(err) {
 				continue
 			}
 			return errors.Wrapf(err, "failed to delete offending PDB %v", pdbNamespacedName(pdb))
 		}
-		err = ctx.publishEvent(pdb, EventReasonPodDisruptionBudgetDeleted, EventMessageDeletedFmt)
+		err = ctx.publishEvent(gctx, pdb, EventReasonPodDisruptionBudgetDeleted, EventMessageDeletedFmt)
 		if err != nil {
 			log.Warnf(err.Error())
 		}
@@ -193,7 +195,7 @@ func (ctx *ReaperContext) handleReapableDisruptionBudgets() error {
 	return nil
 }
 
-func (ctx *ReaperContext) handleBlockingDisruptionBudgets() error {
+func (ctx *ReaperContext) handleBlockingDisruptionBudgets(gctx context.Context) error {
 
 	for namespace, pdbs := range ctx.ClusterBlockingPodDisruptionBudgets {
 
@@ -204,7 +206,7 @@ func (ctx *ReaperContext) handleBlockingDisruptionBudgets() error {
 				return errors.Wrapf(err, "failed to get label selector from structured selector %+v", pdb.Spec.Selector)
 			}
 
-			pods, err := ctx.listPodsWithSelector(namespace, labelSelector)
+			pods, err := ctx.listPodsWithSelector(gctx, namespace, labelSelector)
 			if err != nil {
 				return errors.Wrap(err, "failed to list PDB pods")
 			}
@@ -218,7 +220,7 @@ func (ctx *ReaperContext) handleBlockingDisruptionBudgets() error {
 				if misconfigured {
 					log.Infof("PDB %v is marked reapable due to blocking configuration", pdbNamespacedName(pdb))
 					ctx.addReapablePodDisruptionBudget(pdb)
-					err = ctx.publishEvent(pdb, EventReasonBlockingDetected, EventMessageBlockingFmt)
+					err = ctx.publishEvent(gctx, pdb, EventReasonBlockingDetected, EventMessageBlockingFmt)
 					if err != nil {
 						log.Warnf(err.Error())
 					}
@@ -232,7 +234,7 @@ func (ctx *ReaperContext) handleBlockingDisruptionBudgets() error {
 				if crashLoop := isPodsInCrashloop(pods, ctx.CrashLoopRestartCount, ctx.AllCrashLoop); crashLoop {
 					log.Infof("PDB %v is marked reapable due to targeted pods in crashloop: %+v", pdbNamespacedName(pdb), podSliceNamespacedNames(pods))
 					ctx.addReapablePodDisruptionBudget(pdb)
-					err = ctx.publishEvent(pdb, EventReasonBlockingCrashLoopDetected, EventMessageCrashLoopFmt)
+					err = ctx.publishEvent(gctx, pdb, EventReasonBlockingCrashLoopDetected, EventMessageCrashLoopFmt)
 					if err != nil {
 						log.Warnf(err.Error())
 					}
@@ -248,7 +250,7 @@ func (ctx *ReaperContext) handleBlockingDisruptionBudgets() error {
 				if notReady := isPodsInNotReadyState(pods, ctx.ReapNotReadyThreshold, ctx.AllNotReady); notReady {
 					log.Infof("PDB %v is marked reapable due to targeted pods in not-ready state: %+v", pdbNamespacedName(pdb), podSliceNamespacedNames(pods))
 					ctx.addReapablePodDisruptionBudget(pdb)
-					err = ctx.publishEvent(pdb, EventReasonBlockingNotReadyStateDetected, EventMessageNotReadyFmt)
+					err = ctx.publishEvent(gctx, pdb, EventReasonBlockingNotReadyStateDetected, EventMessageNotReadyFmt)
 					if err != nil {
 						log.Warnf(err.Error())
 					}
@@ -264,7 +266,7 @@ func (ctx *ReaperContext) handleBlockingDisruptionBudgets() error {
 	return nil
 }
 
-func (ctx *ReaperContext) handleMultipleDisruptionBudgets() error {
+func (ctx *ReaperContext) handleMultipleDisruptionBudgets(gctx context.Context) error {
 
 	if !ctx.ReapMultiple {
 		return nil
@@ -282,7 +284,7 @@ func (ctx *ReaperContext) handleMultipleDisruptionBudgets() error {
 				return errors.Wrapf(err, "failed to get label selector from structured selector %+v", pdb.Spec.Selector)
 			}
 
-			pods, err := ctx.listPodsWithSelector(namespace, labelSelector)
+			pods, err := ctx.listPodsWithSelector(gctx, namespace, labelSelector)
 			if err != nil {
 				return errors.Wrap(err, "failed to list PDB pods")
 			}
@@ -294,7 +296,7 @@ func (ctx *ReaperContext) handleMultipleDisruptionBudgets() error {
 			log.Infof("PDBs %+v are marked reapable - pods %+v has multiple PDBs", pdbSliceNamespacedNames(pdbs), podSliceNamespacedNames(namespacePodsWithBudget))
 			ctx.addReapablePodDisruptionBudget(pdbs...)
 			for _, pdb := range pdbs {
-				err := ctx.publishEvent(pdb, EventReasonMultipleDetected, EventMessageMultipleFmt)
+				err := ctx.publishEvent(gctx, pdb, EventReasonMultipleDetected, EventMessageMultipleFmt)
 				if err != nil {
 					log.Warnf(err.Error())
 				}
@@ -309,9 +311,9 @@ func (ctx *ReaperContext) handleMultipleDisruptionBudgets() error {
 	return nil
 }
 
-func (ctx *ReaperContext) listPodsWithSelector(namespace, selector string) ([]corev1.Pod, error) {
+func (ctx *ReaperContext) listPodsWithSelector(gctx context.Context, namespace, selector string) ([]corev1.Pod, error) {
 	var pods []corev1.Pod
-	podList, err := ctx.KubernetesClient.CoreV1().Pods(namespace).List(metav1.ListOptions{LabelSelector: selector})
+	podList, err := ctx.KubernetesClient.CoreV1().Pods(namespace).List(gctx, metav1.ListOptions{LabelSelector: selector})
 	if err != nil {
 		return pods, errors.Wrapf(err, "failed to list pods with selector '%v'", selector)
 	}
@@ -319,7 +321,7 @@ func (ctx *ReaperContext) listPodsWithSelector(namespace, selector string) ([]co
 	return pods, nil
 }
 
-func (ctx *ReaperContext) publishEvent(pdb policyv1beta1.PodDisruptionBudget, reason, msg string) error {
+func (ctx *ReaperContext) publishEvent(gctx context.Context, pdb policyv1beta1.PodDisruptionBudget, reason, msg string) error {
 	var (
 		pdbNamespace   = pdb.GetNamespace()
 		pdbName        = pdb.GetName()
@@ -346,7 +348,7 @@ func (ctx *ReaperContext) publishEvent(pdb policyv1beta1.PodDisruptionBudget, re
 		FirstTimestamp: metav1.NewTime(now),
 		LastTimestamp:  metav1.NewTime(now),
 	}
-	_, err := ctx.KubernetesClient.CoreV1().Events(pdbNamespace).Create(event)
+	_, err := ctx.KubernetesClient.CoreV1().Events(pdbNamespace).Create(gctx, event, metav1.CreateOptions{})
 	if err != nil {
 		return errors.Wrap(err, "failed to publish event")
 	}
