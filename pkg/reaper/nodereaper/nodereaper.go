@@ -607,7 +607,6 @@ func (ctx *ReaperContext) reapOldNodes(gctx context.Context, w ReaperAwsAuth) er
 		// wrap into a func to make sure defer works as expected
 		err = func() error {
 			defer func() {
-				ctx.removeLabelFromNode(instance.NodeName, v1.LabelNodeExcludeBalancers)
 				if lock.Locked() && controlPlaneCheckError == nil {
 					// eat the error, the func will log if there's one
 					_ = lock.releaseLock(w.DDB)

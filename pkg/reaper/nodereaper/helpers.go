@@ -175,16 +175,15 @@ func (ctx *ReaperContext) drainNode(gctx context.Context, name string, dryRun bo
 	cmdOut, err := runCommandWithContext(gctx, drainCommand, drainArgs, ctx.DrainTimeoutSeconds)
 	log.Infof("drain command output: %s", cmdOut)
 	if err != nil {
-		event := ctx.getUnreapableDrainFailureEvent(name, err.Error())
-		ctx.publishEvent(gctx, ctx.SelfNamespace, event)
+		ctx.publishEvent(gctx, ctx.SelfNamespace, ctx.getUnreapableDrainFailureEvent(name, err.Error()))
+		logMsg := fmt.Sprintf("failed to drain node: %v", name)
 		if err.Error() == "command execution timed out" {
-			log.Warnf("failed to drain node %v, drain command timed-out", name)
+			logMsg = fmt.Sprintf("%s, drain command timed-out", logMsg)
 			ctx.annotateNode(name, ageUnreapableAnnotationKey, getUTCNowStr())
-			ctx.uncordonNode(name, dryRun, ctx.IgnoreFailure)
-			return err
 		}
-		log.Warnf("failed to drain node: %v", err)
+		log.Warnf(logMsg)
 		ctx.uncordonNode(name, dryRun, ctx.IgnoreFailure)
+		ctx.removeLabelFromNode(name, v1.LabelNodeExcludeBalancers)
 		return err
 	}
 	ctx.DrainedInstances++
