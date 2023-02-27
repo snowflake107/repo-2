@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package nodereaper deals with reaping nodes.
 package nodereaper
 
 import (
@@ -43,6 +44,7 @@ const (
 	controlPlaneType = "control-plane"
 )
 
+// NodeSelector is a type representing a selector for control plane nodes or worker nodes
 type NodeSelector string
 
 const (
@@ -99,9 +101,9 @@ func runCommand(call string, arg []string) (string, error) {
 	return string(out), err
 }
 
-func runCommandWithContext(call string, args []string, timeoutSeconds int64) (string, error) {
+func runCommandWithContext(gctx context.Context, call string, args []string, timeoutSeconds int64) (string, error) {
 	// Create a new context and add a timeout to it
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeoutSeconds)*time.Second)
+	ctx, cancel := context.WithTimeout(gctx, time.Duration(timeoutSeconds)*time.Second)
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, call, args...)
@@ -125,12 +127,12 @@ func (ctx *ReaperContext) uncordonNode(name string, dryRun bool, ignoreDrainFail
 	uncordonCommand := ctx.KubectlLocalPath
 	if dryRun || ignoreDrainFailure {
 		log.Warnf("dry run / ignore drain failure is on, instance %v remains cordoned", name)
-	} else {
-		_, err := runCommand(uncordonCommand, uncordonArgs)
-		if err != nil {
-			log.Errorf("failed to uncordon node %v", name)
-			return err
-		}
+		return nil
+	}
+	_, err := runCommand(uncordonCommand, uncordonArgs)
+	if err != nil {
+		log.Errorf("failed to uncordon node %v", name)
+		return err
 	}
 	return nil
 }
@@ -155,33 +157,45 @@ func (ctx *ReaperContext) terminateInstance(w autoscalingiface.AutoScalingAPI, i
 	return nil
 }
 
-func (ctx *ReaperContext) drainNode(name string, dryRun bool) error {
+func (ctx *ReaperContext) drainNode(gctx context.Context, name string, dryRun bool) error {
+	if dryRun {
+		log.Warnf("dry run is on, '%v' will not be cordon/drained", name)
+	}
 	log.Infof("draining node %v", name)
 	drainArgs := []string{"drain", name, "--ignore-daemonsets=true", "--delete-local-data=true", "--force", "--grace-period=-1"}
 	drainCommand := ctx.KubectlLocalPath
 	if dryRun {
 		log.Warnf("dry run is on, instance not drained")
-	} else {
-		if err := ctx.annotateNode(name, stateAnnotationKey, drainingStateName); err != nil {
-			log.Warnf("failed to update state annotation on node '%v'", name)
-		}
-		cmdOut, err := runCommandWithContext(drainCommand, drainArgs, ctx.DrainTimeoutSeconds)
-		log.Infof("drain command output: %s", cmdOut)
-		if err != nil {
-			event := ctx.getUnreapableDrainFailureEvent(name, err.Error())
-			ctx.publishEvent(ctx.SelfNamespace, event)
-			if err.Error() == "command execution timed out" {
-				log.Warnf("failed to drain node %v, drain command timed-out", name)
-				ctx.annotateNode(name, ageUnreapableAnnotationKey, getUTCNowStr())
-				ctx.uncordonNode(name, dryRun, ctx.IgnoreFailure)
-				return err
-			}
-			log.Warnf("failed to drain node: %v", err)
-			ctx.uncordonNode(name, dryRun, ctx.IgnoreFailure)
-			return err
-		}
-		ctx.DrainedInstances++
+		return nil
 	}
+
+	if err := ctx.annotateNode(name, stateAnnotationKey, drainingStateName); err != nil {
+		log.Warnf("failed to update state annotation on node '%v'", name)
+	}
+
+	if ctx.DeregisterFromLoadBalancer {
+		if err := ctx.labelNode(name, v1.LabelNodeExcludeBalancers, "governor"); err != nil {
+			log.Warnf("failed to exclude node from load balancers '%v'", name)
+		}
+	}
+
+	cmdOut, err := runCommandWithContext(gctx, drainCommand, drainArgs, ctx.DrainTimeoutSeconds)
+	log.Infof("drain command output: %s", cmdOut)
+	if err != nil {
+		ctx.publishEvent(gctx, ctx.SelfNamespace, ctx.getUnreapableDrainFailureEvent(name, err.Error()))
+		logMsg := fmt.Sprintf("failed to drain node: %v", name)
+		if err.Error() == "command execution timed out" {
+			logMsg = fmt.Sprintf("%s, drain command timed-out", logMsg)
+			ctx.annotateNode(name, ageUnreapableAnnotationKey, getUTCNowStr())
+		}
+		log.Warnf(logMsg)
+		ctx.uncordonNode(name, dryRun, ctx.IgnoreFailure)
+		if !ctx.IgnoreFailure && ctx.DeregisterFromLoadBalancer {
+			ctx.removeLabelFromNode(name, v1.LabelNodeExcludeBalancers)
+		}
+		return err
+	}
+	ctx.DrainedInstances++
 	return nil
 }
 
@@ -208,12 +222,12 @@ func (ctx *ReaperContext) annotateNode(nodeName, annotationKey, annotationValue 
 	annotateCommand := ctx.KubectlLocalPath
 	if ctx.DryRun {
 		log.Warnf("dry run is on, node not annotated")
-	} else {
-		_, err := runCommand(annotateCommand, annotateArgs)
-		if err != nil {
-			log.Errorf("failed to annotate node %v", nodeName)
-			return err
-		}
+		return nil
+	}
+	_, err := runCommand(annotateCommand, annotateArgs)
+	if err != nil {
+		log.Errorf("failed to annotate node %v", nodeName)
+		return err
 	}
 	return nil
 }
@@ -233,9 +247,24 @@ func (ctx *ReaperContext) labelNode(nodeName, labelKey, labelValue string) error
 	return err
 }
 
-func (ctx *ReaperContext) publishEvent(namespace string, event *v1.Event) error {
+func (ctx *ReaperContext) removeLabelFromNode(nodeName, labelKey string) error {
+	label := fmt.Sprintf("%v-", labelKey)
+	labelArgs := []string{"label", "node", nodeName, label}
+	labelCommand := ctx.KubectlLocalPath
+	if ctx.DryRun {
+		log.Warnf("dry run is on, node labels unchanged")
+		return nil
+	}
+	_, err := runCommand(labelCommand, labelArgs)
+	if err != nil {
+		log.Errorf("failed to label node %v", nodeName)
+	}
+	return err
+}
+
+func (ctx *ReaperContext) publishEvent(gctx context.Context, namespace string, event *v1.Event) error {
 	log.Infof("publishing event: %v", event.Reason)
-	_, err := ctx.KubernetesClient.CoreV1().Events(namespace).Create(event)
+	_, err := ctx.KubernetesClient.CoreV1().Events(namespace).Create(gctx, event, metav1.CreateOptions{})
 	if err != nil {
 		log.Errorf("failed to publish event: %v", err)
 		return err
@@ -290,48 +319,51 @@ func (l *LockRecord) obtainLock(ddbAPI dynamodbiface.DynamoDBAPI) error {
 }
 
 func (ctx *ReaperContext) tryClearLock(ddbAPI dynamodbiface.DynamoDBAPI, err error, lock *LockRecord) {
-	if aerr, ok := err.(awserr.Error); ok {
-		if aerr.Code() == dynamodb.ErrCodeConditionalCheckFailedException {
-			// check if we need to do lock cleanup here
-
-			result, err := ddbAPI.GetItem(&dynamodb.GetItemInput{
-				Key: map[string]*dynamodb.AttributeValue{
-					"LockType": {
-						S: aws.String(controlPlaneType),
-					},
-				},
-				TableName: aws.String(ctx.LocksTableName),
-			})
-
-			if err != nil || result.Item == nil {
-				// don't care, skip this node then
-				log.Errorf("failed to get lock record for cluster %s: %s", ctx.ClusterID, err)
-				return
-			}
-
-			item := LockRecord{
-				tableName: ctx.LocksTableName,
-			}
-
-			err = dynamodbattribute.UnmarshalMap(result.Item, &item)
-			if err != nil {
-				log.Errorf("failed to unmarshal lock record for cluster %s: %s", ctx.ClusterID, err)
-				return
-			}
-
-			if item.ClusterID == ctx.ClusterID {
-				// this lock belongs to this cluster and should have been released
-				if err := item.releaseLock(ddbAPI); err != nil {
-					log.Errorf("failed to clean up a leftover lock for cluster %s: %s", ctx.ClusterID, err)
-				}
-			} else {
-				log.Infof("another master roll is in progress, skipping node %s (%s)", lock.NodeName, lock.InstanceID)
-			}
-		} else {
-			log.Infof("AWS error while attempting to obtain lock for %s (%s), skipping: %s", lock.NodeName, lock.InstanceID, aerr.Message())
-		}
-	} else {
+	aerr, ok := err.(awserr.Error)
+	if !ok {
 		log.Infof("unknown error while attempting to obtain lock for %s (%s), skipping: %s", lock.NodeName, lock.InstanceID, err.Error())
+		return
+	}
+
+	if aerr.Code() != dynamodb.ErrCodeConditionalCheckFailedException {
+		log.Infof("AWS error while attempting to obtain lock for %s (%s), skipping: %s", lock.NodeName, lock.InstanceID, aerr.Message())
+		return
+	}
+
+	// check if we need to do lock cleanup here
+	result, err := ddbAPI.GetItem(&dynamodb.GetItemInput{
+		Key: map[string]*dynamodb.AttributeValue{
+			"LockType": {
+				S: aws.String(controlPlaneType),
+			},
+		},
+		TableName: aws.String(ctx.LocksTableName),
+	})
+
+	if err != nil || result.Item == nil {
+		// don't care, skip this node then
+		log.Errorf("failed to get lock record for cluster %s: %s", ctx.ClusterID, err)
+		return
+	}
+
+	item := LockRecord{
+		tableName: ctx.LocksTableName,
+	}
+
+	err = dynamodbattribute.UnmarshalMap(result.Item, &item)
+	if err != nil {
+		log.Errorf("failed to unmarshal lock record for cluster %s: %s", ctx.ClusterID, err)
+		return
+	}
+
+	if item.ClusterID != ctx.ClusterID {
+		log.Infof("another master roll is in progress, skipping node %s (%s)", lock.NodeName, lock.InstanceID)
+		return
+	}
+
+	// this lock belongs to this cluster and should have been released
+	if err := item.releaseLock(ddbAPI); err != nil {
+		log.Errorf("failed to clean up a leftover lock for cluster %s: %s", ctx.ClusterID, err)
 	}
 }
 
@@ -495,8 +527,8 @@ func getAutoScalingGroup(w autoscalingiface.AutoScalingAPI, name string) (autosc
 	return *response.AutoScalingGroups[0], nil
 }
 
-func dumpSpec(nodeName string, kubeClient kubernetes.Interface) error {
-	nodeObject, err := kubeClient.CoreV1().Nodes().Get(nodeName, metav1.GetOptions{})
+func dumpSpec(gctx context.Context, nodeName string, kubeClient kubernetes.Interface) error {
+	nodeObject, err := kubeClient.CoreV1().Nodes().Get(gctx, nodeName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -515,9 +547,9 @@ func nodeMeetsReapAfterThreshold(minuteThreshold float64, minutesSinceTransition
 	return false
 }
 
-func isControlPlane(node string, kubeClient kubernetes.Interface) (bool, error) {
+func isControlPlane(gctx context.Context, node string, kubeClient kubernetes.Interface) (bool, error) {
 	corev1 := kubeClient.CoreV1()
-	nodeObject, err := corev1.Nodes().Get(node, metav1.GetOptions{})
+	nodeObject, err := corev1.Nodes().Get(gctx, node, metav1.GetOptions{})
 	if err != nil {
 		log.Errorf("failed to get node, %v", err)
 		return false, err
@@ -529,11 +561,11 @@ func isControlPlane(node string, kubeClient kubernetes.Interface) (bool, error) 
 	return false, nil
 }
 
-func getHealthyMasterCount(kubeClient kubernetes.Interface) (int, error) {
+func getHealthyMasterCount(gctx context.Context, kubeClient kubernetes.Interface) (int, error) {
 	corev1 := kubeClient.CoreV1()
 	masterCount := 0
 
-	nodeList, err := corev1.Nodes().List(metav1.ListOptions{LabelSelector: string(nodeSelectorControlPlane)})
+	nodeList, err := corev1.Nodes().List(gctx, metav1.ListOptions{LabelSelector: string(nodeSelectorControlPlane)})
 	if err != nil {
 		log.Errorf("failed to list master nodes, %v", err)
 		return 0, err
@@ -546,7 +578,7 @@ func getHealthyMasterCount(kubeClient kubernetes.Interface) (int, error) {
 	return masterCount, nil
 }
 
-func (ctx *ReaperContext) waitForControlPlaneReady() error {
+func (ctx *ReaperContext) waitForControlPlaneReady(gctx context.Context) error {
 	var controlPlaneCheckError error
 	// Do not release the lock until control plane is healthy
 	controlPlaneHealthCheckStart := time.Now()
@@ -555,7 +587,7 @@ func (ctx *ReaperContext) waitForControlPlaneReady() error {
 	for time.Since(controlPlaneHealthCheckStart) < maxWait {
 		log.Infof("waiting for control plane to become healthy before releasing the lock")
 
-		controlPlaneReady, err := ctx.controlPlaneReady()
+		controlPlaneReady, err := ctx.controlPlaneReady(gctx)
 		if controlPlaneReady {
 			log.Infof("control plane is healthy")
 			controlPlaneCheckError = nil
@@ -576,7 +608,7 @@ func (ctx *ReaperContext) waitForControlPlaneReady() error {
 	return controlPlaneCheckError
 }
 
-func (ctx *ReaperContext) getNodes(nodeType NodeSelector) (*v1.NodeList, error) {
+func (ctx *ReaperContext) getNodes(gctx context.Context, nodeType NodeSelector) (*v1.NodeList, error) {
 	corev1 := ctx.KubernetesClient.CoreV1()
 
 	opts := metav1.ListOptions{}
@@ -585,11 +617,11 @@ func (ctx *ReaperContext) getNodes(nodeType NodeSelector) (*v1.NodeList, error) 
 		opts.LabelSelector = string(nodeType)
 	}
 
-	return corev1.Nodes().List(opts)
+	return corev1.Nodes().List(gctx, opts)
 }
 
-func (ctx *ReaperContext) allNodesAreReady() (bool, error) {
-	nodeList, err := ctx.getNodes(nodeSelectorAll)
+func (ctx *ReaperContext) allNodesAreReady(gctx context.Context) (bool, error) {
+	nodeList, err := ctx.getNodes(gctx, nodeSelectorAll)
 	if err != nil {
 		log.Errorf("failed to list all nodes, %v", err)
 		return false, err
@@ -603,8 +635,8 @@ func (ctx *ReaperContext) allNodesAreReady() (bool, error) {
 	return true, nil
 }
 
-func (ctx *ReaperContext) controlPlaneReady() (bool, error) {
-	nodeList, err := ctx.getNodes(nodeSelectorControlPlane)
+func (ctx *ReaperContext) controlPlaneReady(gctx context.Context) (bool, error) {
+	nodeList, err := ctx.getNodes(gctx, nodeSelectorControlPlane)
 	if err != nil {
 		log.Errorf("failed to list all nodes, %v", err)
 		return false, err
@@ -624,9 +656,9 @@ func (ctx *ReaperContext) controlPlaneReady() (bool, error) {
 	return true, nil
 }
 
-func (ctx *ReaperContext) deleteKubernetesNode(nodeName string) error {
+func (ctx *ReaperContext) deleteKubernetesNode(gctx context.Context, nodeName string) error {
 	log.Infof("deleting node %s from Kubernetes", nodeName)
-	return ctx.KubernetesClient.CoreV1().Nodes().Delete(nodeName, &metav1.DeleteOptions{})
+	return ctx.KubernetesClient.CoreV1().Nodes().Delete(gctx, nodeName, metav1.DeleteOptions{})
 }
 
 func isTerminated(instances []*ec2.Instance, instanceID string) bool {

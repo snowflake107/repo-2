@@ -19,8 +19,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/keikoproj/governor/pkg/reaper/nodereaper"
 	"github.com/spf13/cobra"
+
+	"github.com/keikoproj/governor/pkg/reaper/nodereaper"
 )
 
 var nodeReaperArgs nodereaper.Args
@@ -31,7 +32,7 @@ var nodeReapCmd = &cobra.Command{
 	Short: "node invokes the node reaper",
 	Long:  `node reaper finds and force terminates instances of nodes which are not ready`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := nodereaper.Run(&nodeReaperArgs); err != nil {
+		if err := nodereaper.Run(cmd.Context(), &nodeReaperArgs); err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
@@ -73,4 +74,5 @@ func init() {
 	nodeReapCmd.Flags().StringVar(&nodeReaperArgs.ClusterID, "cluster-id", "", "Unique cluster identifier; used for node reaper locks")
 	nodeReapCmd.Flags().StringVar(&nodeReaperArgs.LocksTableName, "locks-table-name", "", "DynamoDB table name for storing the lock objects (default not set)")
 	nodeReapCmd.Flags().Int64Var(&nodeReaperArgs.LockExpirationSeconds, "lock-expiration-seconds", 0, "Expire locks after this time. Zero means no expiration.")
+	nodeReapCmd.Flags().BoolVar(&nodeReaperArgs.DeregisterFromLoadBalancer, "deregister-from-load-balancer", false, "Deregistes the node from the load balancer during draining.")
 }

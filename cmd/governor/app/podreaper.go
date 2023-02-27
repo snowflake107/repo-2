@@ -19,8 +19,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/keikoproj/governor/pkg/reaper/podreaper"
 	"github.com/spf13/cobra"
+
+	"github.com/keikoproj/governor/pkg/reaper/podreaper"
 )
 
 var podReaperArgs podreaper.Args
@@ -36,7 +37,7 @@ var podReapCmd = &cobra.Command{
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		if err := podreaper.Run(ctx); err != nil {
+		if err := podreaper.Run(cmd.Context(), ctx); err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}

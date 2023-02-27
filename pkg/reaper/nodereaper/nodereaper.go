@@ -16,6 +16,7 @@ limitations under the License.
 package nodereaper
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"reflect"
@@ -27,12 +28,13 @@ import (
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/keikoproj/governor/pkg/reaper/common"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	errors2 "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/keikoproj/governor/pkg/reaper/common"
 )
 
 var log = logrus.New()
@@ -48,6 +50,7 @@ const (
 	reapFlappyDisabledLabelKey  = "governor.keikoproj.io/reap-flappy-disabled"
 	reapOldDisabledLabelKey     = "governor.keikoproj.io/reap-old-disabled"
 
+	// NodeReaperResultMetricName is the metric name of the node reaper result
 	NodeReaperResultMetricName = "governor_node_reaper_result"
 	drainFailedMetric          = "DrainFailedAgeExpiredNode"
 	terminationReasonUnhealthy = "TerminateUnhealthyNode"
@@ -80,6 +83,7 @@ func (ctx *ReaperContext) validateArguments(args *Args) error {
 	ctx.ControlPlaneNodeCount = args.ControlPlaneNodeCount
 	ctx.NodeHealthcheckIntervalSeconds = args.NodeHealthcheckIntervalSeconds
 	ctx.NodeHealthcheckTimeoutSeconds = args.NodeHealthcheckTimeoutSeconds
+	ctx.DeregisterFromLoadBalancer = args.DeregisterFromLoadBalancer
 
 	log.Infof("AWS Region = %v", ctx.EC2Region)
 	log.Infof("Dry Run = %t", ctx.DryRun)
@@ -263,7 +267,7 @@ func (ctx *ReaperContext) validateArguments(args *Args) error {
 }
 
 // Run is the main runner function for node-reaper, and will initialize and start the node-reaper
-func Run(args *Args) error {
+func Run(gctx context.Context, args *Args) error {
 	log.SetFormatter(&logrus.TextFormatter{
 		FullTimestamp: true,
 	})
@@ -294,7 +298,7 @@ func Run(args *Args) error {
 	awsAuth.DDB = dynamodb.New(sess)
 
 	log.Infoln("starting api scanner")
-	err = ctx.scan(awsAuth)
+	err = ctx.scan(gctx, awsAuth)
 	if err != nil {
 		log.Errorf("failed to scan nodes, %v", err)
 		return err
@@ -337,7 +341,7 @@ func Run(args *Args) error {
 
 	if len(ctx.ReapableInstances) != 0 {
 		log.Infoln("starting reap cycle for unhealthy nodes")
-		err = ctx.reapUnhealthyNodes(awsAuth)
+		err = ctx.reapUnhealthyNodes(gctx, awsAuth)
 		if err != nil {
 			log.Errorf("failed to reap unhealthy nodes, %v", err)
 			return err
@@ -348,7 +352,7 @@ func Run(args *Args) error {
 
 	if len(ctx.AgeDrainReapableInstances) != 0 {
 		log.Infoln("starting reap cycle for old nodes")
-		err = ctx.reapOldNodes(awsAuth)
+		err = ctx.reapOldNodes(gctx, awsAuth)
 		if err != nil {
 			log.Errorf("failed to reap old nodes, %v", err)
 			return err
@@ -517,7 +521,7 @@ func (ctx *ReaperContext) deriveReapableNodes() error {
 	return nil
 }
 
-func (ctx *ReaperContext) reapOldNodes(w ReaperAwsAuth) error {
+func (ctx *ReaperContext) reapOldNodes(gctx context.Context, w ReaperAwsAuth) error {
 	for _, instance := range ctx.AgeDrainReapableInstances {
 		ctx.AgeKillOrder = append(ctx.AgeKillOrder, instance.NodeName)
 	}
@@ -537,12 +541,12 @@ func (ctx *ReaperContext) reapOldNodes(w ReaperAwsAuth) error {
 			continue
 		}
 
-		masterCount, err := getHealthyMasterCount(ctx.KubernetesClient)
+		masterCount, err := getHealthyMasterCount(gctx, ctx.KubernetesClient)
 		if err != nil {
 			return err
 		}
 
-		isControlPlaneNode, err := isControlPlane(instance.NodeName, ctx.KubernetesClient)
+		isControlPlaneNode, err := isControlPlane(gctx, instance.NodeName, ctx.KubernetesClient)
 		if err != nil {
 			return err
 		}
@@ -566,7 +570,7 @@ func (ctx *ReaperContext) reapOldNodes(w ReaperAwsAuth) error {
 				continue
 			}
 
-			nodesReady, err := ctx.allNodesAreReady()
+			nodesReady, err := ctx.allNodesAreReady(gctx)
 			if err != nil {
 				return err
 			}
@@ -609,12 +613,12 @@ func (ctx *ReaperContext) reapOldNodes(w ReaperAwsAuth) error {
 				}
 			}()
 
-			err = ctx.drainNode(instance.NodeName, ctx.DryRun)
+			err = ctx.drainNode(gctx, instance.NodeName, ctx.DryRun)
 			if err != nil {
 				return err
 			}
 
-			err = dumpSpec(instance.NodeName, ctx.KubernetesClient)
+			err = dumpSpec(gctx, instance.NodeName, ctx.KubernetesClient)
 			if err != nil {
 				log.Warnf("failed to dump spec for node %v, %v", instance.NodeName, err)
 			}
@@ -627,7 +631,7 @@ func (ctx *ReaperContext) reapOldNodes(w ReaperAwsAuth) error {
 				}
 
 				// termination call was successful, so we can try to delete the node from the API
-				err = ctx.deleteKubernetesNode(instance.NodeName)
+				err = ctx.deleteKubernetesNode(gctx, instance.NodeName)
 				if err != nil {
 					log.Warnf("failed to delete the node %v: %v", instance.NodeName, err)
 				}
@@ -640,7 +644,7 @@ func (ctx *ReaperContext) reapOldNodes(w ReaperAwsAuth) error {
 				log.Warnf("dry run is on, '%v' will not be terminated", instance.NodeName)
 			}
 
-			controlPlaneCheckError = ctx.waitForControlPlaneReady()
+			controlPlaneCheckError = ctx.waitForControlPlaneReady(gctx)
 
 			// if the control plane did not become healthy in time,
 			// the next loop will fail the ready check, so just log the error here
@@ -666,7 +670,7 @@ func (ctx *ReaperContext) reapOldNodes(w ReaperAwsAuth) error {
 	return nil
 }
 
-func (ctx *ReaperContext) reapUnhealthyNodes(w ReaperAwsAuth) error {
+func (ctx *ReaperContext) reapUnhealthyNodes(gctx context.Context, w ReaperAwsAuth) error {
 	for _, instance := range ctx.ReapableInstances {
 
 		if ctx.TerminatedInstances >= ctx.MaxKill {
@@ -687,7 +691,7 @@ func (ctx *ReaperContext) reapUnhealthyNodes(w ReaperAwsAuth) error {
 			}
 		}
 
-		isControlPlaneNode, err := isControlPlane(instance.NodeName, ctx.KubernetesClient)
+		isControlPlaneNode, err := isControlPlane(gctx, instance.NodeName, ctx.KubernetesClient)
 		if err != nil {
 			if k8serr, ok := err.(errors2.APIStatus); ok && k8serr.Status().Reason == metav1.StatusReasonNotFound {
 				// probably unjoined node, ignore
@@ -721,17 +725,14 @@ func (ctx *ReaperContext) reapUnhealthyNodes(w ReaperAwsAuth) error {
 
 			// Drain if drainable
 			if _, drainable := ctx.DrainableInstances[instance.NodeName]; drainable {
-				if ctx.DryRun {
-					log.Warnf("dry run is on, '%v' will not be cordon/drained", instance.NodeName)
-				}
-				err := ctx.drainNode(instance.NodeName, ctx.DryRun)
+				err := ctx.drainNode(gctx, instance.NodeName, ctx.DryRun)
 				if err != nil {
 					ctx.exposeMetric(instance.NodeName, instance.InstanceID, drainFailedMetric, NodeReaperResultMetricName, 1)
 					return err
 				}
 			}
 
-			err = dumpSpec(instance.NodeName, ctx.KubernetesClient)
+			err = dumpSpec(gctx, instance.NodeName, ctx.KubernetesClient)
 			if err != nil {
 				log.Warnf("failed to dump spec for node %v, %v", instance.NodeName, err)
 			}
@@ -745,7 +746,7 @@ func (ctx *ReaperContext) reapUnhealthyNodes(w ReaperAwsAuth) error {
 				}
 
 				// termination call was successful, so we can try to delete the node from the API
-				err = ctx.deleteKubernetesNode(instance.NodeName)
+				err = ctx.deleteKubernetesNode(gctx, instance.NodeName)
 				if err != nil {
 					log.Warnf("failed to delete the node %v: %v", instance.NodeName, err)
 				}
@@ -760,7 +761,7 @@ func (ctx *ReaperContext) reapUnhealthyNodes(w ReaperAwsAuth) error {
 				log.Warnf("dry run is on, '%v' will not be terminated", instance.NodeName)
 			}
 
-			controlPlaneCheckError = ctx.waitForControlPlaneReady()
+			controlPlaneCheckError = ctx.waitForControlPlaneReady(gctx)
 
 			// if the control plane did not become healthy in time,
 			// the next loop will fail the ready check, so just log the error here
@@ -781,7 +782,7 @@ func (ctx *ReaperContext) reapUnhealthyNodes(w ReaperAwsAuth) error {
 	return nil
 }
 
-func (ctx *ReaperContext) scan(w ReaperAwsAuth) error {
+func (ctx *ReaperContext) scan(gctx context.Context, w ReaperAwsAuth) error {
 	corev1 := ctx.KubernetesClient.CoreV1()
 
 	if ctx.ReapOld {
@@ -811,21 +812,21 @@ func (ctx *ReaperContext) scan(w ReaperAwsAuth) error {
 
 	log.Infof("Self Pod Namespace = %v", ctx.SelfNamespace)
 
-	nodeList, err := corev1.Nodes().List(metav1.ListOptions{})
+	nodeList, err := corev1.Nodes().List(gctx, metav1.ListOptions{})
 	if err != nil {
 		log.Errorf("failed to list all nodes, %v", err)
 		return err
 	}
 	ctx.AllNodes = nodeList.Items
 
-	podList, err := corev1.Pods("").List(metav1.ListOptions{})
+	podList, err := corev1.Pods("").List(gctx, metav1.ListOptions{})
 	if err != nil {
 		log.Errorf("failed to list all pods, %v", err)
 		return err
 	}
 	ctx.AllPods = podList.Items
 
-	eventList, err := corev1.Events("").List(metav1.ListOptions{FieldSelector: "involvedObject.kind=Node"})
+	eventList, err := corev1.Events("").List(gctx, metav1.ListOptions{FieldSelector: "involvedObject.kind=Node"})
 	if err != nil {
 		log.Errorf("failed to list all events, %v", err)
 		return err

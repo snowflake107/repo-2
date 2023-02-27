@@ -16,6 +16,7 @@ limitations under the License.
 package nodereaper
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -31,11 +32,12 @@ import (
 	"github.com/aws/aws-sdk-go/service/autoscaling/autoscalingiface"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
-	"github.com/keikoproj/governor/pkg/reaper/common"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/client-go/kubernetes/fake"
+
+	"github.com/keikoproj/governor/pkg/reaper/common"
 )
 
 var loggingEnabled bool
@@ -55,7 +57,7 @@ func (m *stubEC2) DescribeTags(input *ec2.DescribeTagsInput) (*ec2.DescribeTagsO
 }
 
 func (m *stubEC2) DescribeInstances(input *ec2.DescribeInstancesInput) (*ec2.DescribeInstancesOutput, error) {
-	var tagFilterKey, tagFilterValue, instanceStateFilter, instanceIdFilter, privateDnsFilter string
+	var tagFilterKey, tagFilterValue, instanceStateFilter, instanceIDFilter, privateDNSFilter string
 	var filteredInstances, outputInstances []*ec2.Instance
 	outputInstances = m.FakeInstances
 	if len(input.Filters) != 0 {
@@ -71,11 +73,11 @@ func (m *stubEC2) DescribeInstances(input *ec2.DescribeInstancesInput) (*ec2.Des
 			}
 
 			if aws.StringValue(filter.Name) == "instance-id" {
-				instanceIdFilter = aws.StringValue(filter.Values[0])
+				instanceIDFilter = aws.StringValue(filter.Values[0])
 			}
 
 			if aws.StringValue(filter.Name) == "private-dns-name" {
-				privateDnsFilter = aws.StringValue(filter.Values[0])
+				privateDNSFilter = aws.StringValue(filter.Values[0])
 			}
 		}
 
@@ -83,8 +85,8 @@ func (m *stubEC2) DescribeInstances(input *ec2.DescribeInstancesInput) (*ec2.Des
 			var match bool
 			var matchCount int
 
-			if instanceIdFilter != "" {
-				if aws.StringValue(instance.InstanceId) == instanceIdFilter {
+			if instanceIDFilter != "" {
+				if aws.StringValue(instance.InstanceId) == instanceIDFilter {
 					match = true
 					matchCount++
 				}
@@ -97,8 +99,8 @@ func (m *stubEC2) DescribeInstances(input *ec2.DescribeInstancesInput) (*ec2.Des
 				}
 			}
 
-			if privateDnsFilter != "" {
-				if aws.StringValue(instance.PrivateDnsName) == privateDnsFilter {
+			if privateDNSFilter != "" {
+				if aws.StringValue(instance.PrivateDnsName) == privateDNSFilter {
 					match = true
 					matchCount++
 				}
@@ -222,7 +224,7 @@ func loadFakeAPI(ctx *ReaperContext) {
 		namespace := &v1.Namespace{ObjectMeta: metav1.ObjectMeta{
 			Name: c.namespaceName,
 		}}
-		ctx.KubernetesClient.CoreV1().Namespaces().Create(namespace)
+		ctx.KubernetesClient.CoreV1().Namespaces().Create(context.Background(), namespace, metav1.CreateOptions{})
 	}
 }
 
@@ -350,7 +352,7 @@ func createFakeNodes(nodes []FakeNode, ctx *ReaperContext) {
 			Conditions: nodeConditions,
 		}}
 
-		ctx.KubernetesClient.CoreV1().Nodes().Create(node)
+		ctx.KubernetesClient.CoreV1().Nodes().Create(context.Background(), node, metav1.CreateOptions{})
 
 		for _, c := range fakePods {
 			createFakePod(c, ctx)
@@ -376,7 +378,7 @@ func createFakeEvents(events []FakeEvent, ctx *ReaperContext) {
 			Count:  e.count,
 			Reason: e.reason,
 		}
-		ctx.KubernetesClient.CoreV1().Events("default").Create(fakeEvent)
+		ctx.KubernetesClient.CoreV1().Events("default").Create(context.Background(), fakeEvent, metav1.CreateOptions{})
 	}
 }
 
@@ -415,18 +417,18 @@ func createFakePod(c FakePod, ctx *ReaperContext) {
 	}, Spec: v1.PodSpec{
 		NodeName: c.scheduledNode,
 	}}
-	ctx.KubernetesClient.CoreV1().Pods(c.podNamespace).Create(pod)
+	ctx.KubernetesClient.CoreV1().Pods(c.podNamespace).Create(context.Background(), pod, metav1.CreateOptions{})
 }
 
 func runFakeReaper(ctx *ReaperContext, awsAuth ReaperAwsAuth) {
-	ctx.scan(awsAuth)
+	ctx.scan(context.Background(), awsAuth)
 	ctx.deriveFlappyDrainReapableNodes()
 	ctx.deriveAgeDrainReapableNodes()
 	ctx.deriveGhostDrainReapableNodes(awsAuth)
 	ctx.deriveTaintDrainReapableNodes()
 	ctx.deriveReapableNodes()
-	ctx.reapUnhealthyNodes(awsAuth)
-	ctx.reapOldNodes(awsAuth)
+	ctx.reapUnhealthyNodes(context.Background(), awsAuth)
+	ctx.reapOldNodes(context.Background(), awsAuth)
 }
 
 func createFakeAwsAuth(a FakeASG, i []*ec2.Instance) ReaperAwsAuth {

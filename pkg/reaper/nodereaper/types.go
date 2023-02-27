@@ -23,10 +23,11 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
-	"github.com/keikoproj/governor/pkg/reaper/common"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
+
+	"github.com/keikoproj/governor/pkg/reaper/common"
 )
 
 // ReaperAwsAuth is an AWS client-set
@@ -72,6 +73,7 @@ type Args struct {
 	ClusterID                      string
 	LocksTableName                 string
 	LockExpirationSeconds          int64
+	DeregisterFromLoadBalancer     bool
 }
 
 // ReaperContext holds the context of the node-reaper and target cluster
@@ -111,6 +113,7 @@ type ReaperContext struct {
 	ClusterID                      string
 	LocksTableName                 string
 	LockExpirationSeconds          int64
+	DeregisterFromLoadBalancer     bool
 	// runtime
 	UnreadyNodes              []v1.Node
 	AllNodes                  []v1.Node
@@ -133,7 +136,7 @@ type ReaperContext struct {
 	MetricsAPI                common.MetricsAPI
 }
 
-// AgeDrainReapableInstances holds an age-reapable node
+// AgeDrainReapableInstance holds an age-reapable node
 type AgeDrainReapableInstance struct {
 	NodeName   string
 	InstanceID string
