@@ -15,14 +15,14 @@ import com.segment.analytics.kotlin.core.utilities.toContent
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
 
-class FlurryDestination(private val flurryAgentBuilder: FlurryAgent.Builder = FlurryAgent.Builder()) :
+class FlurryDestination :
     DestinationPlugin(), AndroidLifecycle {
     companion object {
         private const val FLURRY_FULL_KEY = "Flurry"
     }
 
     override val key: String = FLURRY_FULL_KEY
-
+    internal var flurryAgentBuilder: FlurryAgent.Builder = FlurryAgent.Builder()
     internal var flurrySettings: FlurrySettings? = null
 
     override fun update(settings: Settings, type: Plugin.UpdateType) {
