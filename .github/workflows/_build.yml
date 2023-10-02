@@ -1,0 +1,44 @@
+name: Build
+
+on:
+  workflow_call:
+
+defaults:
+  run:
+    shell: bash -l {0}
+
+env: 
+  CACHE_NAME: node-modules-cache
+  BUILD_CACHE_NAME: build-cache
+
+jobs:
+  Build:
+    runs-on: ubuntu-latest
+    permissions:
+      statuses: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version-file: ".nvmrc"
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Restore Cache
+        uses: actions/cache/restore@v3.3.2
+        id: npm-cache
+        with:
+          path: |
+            node_modules/
+          key: ${{ env.CACHE_NAME }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Build
+        run: npm run build
+
+      - name: Confirm the build hasn't changed any files
+        run: ./scripts/check-pristine-state package-lock.json
+
+      - name: Run tests
+        run: npm test
