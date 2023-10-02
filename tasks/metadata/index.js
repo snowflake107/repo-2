@@ -32,8 +32,8 @@ type Metadata = {
 
 type MetadataModifier = (
   icon: string,
-  data: $Shape<MetadataItem>,
-) => $Shape<MetadataItem>;
+  data: $Shape<MetadataItem>, // eslint-disable-line no-undef
+) => $Shape<MetadataItem>; // eslint-disable-line no-undef
 
 // Add all modifiers here
 const iconModifiers = [withAutoMirror()];
