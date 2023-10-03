@@ -26,10 +26,7 @@
     "lint:scss": "stylelint '*.scss'",
     "lint:scss:fix": "stylelint '*.scss' --fix",
     "prettier": "prettier --config .prettierrc --write \"**/*.{js,jsx}\"",
-    "test": "npm run lint && npm run jest",
-    "start": "npm run build && npm run storybook",
-    "storybook": "NODE_OPTIONS=--openssl-legacy-provider start-storybook -p 6006",
-    "storybook:dist": "NODE_OPTIONS=--openssl-legacy-provider build-storybook -c .storybook -o dist-storybook"
+    "test": "npm run lint && npm run jest"
   },
   "jest": {
     "coverageReporters": [

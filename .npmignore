@@ -2,15 +2,11 @@
 .DS_Store
 .idea
 .vscode
-.storybook
-/dist-storybook
 node_modules
 npm-debug.*
-lerna-debug.log
 yarn.lock
 scripts
 src
-stories
 tasks
 utils
 babel.config.js
@@ -18,3 +14,10 @@ check-pristine-state
 CONTRIBUTING.md
 gulpfile.babel.js
 gulpfile.js
+.eslintignore
+.eslintrc.json
+.nvmrc
+.prettierignore
+.prettierrc
+.stylelintignore
+.stylelintrc.json
