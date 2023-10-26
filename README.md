@@ -21,16 +21,6 @@ This package exposes Backpack SVGs in various formats:
   dist/js/spinners/*
   ```
 
-- Sass variables containing datauri strings
-  ```
-  dist/scss/_elements.scss
-  dist/scss/_icons-lg.scss
-  dist/scss/_icons-no-color-lg.scss
-  dist/scss/_icons-no-color-sm.scss
-  dist/scss/_icons-sm.scss
-  dist/scss/_spinners.scss
-  ```
-
 - An icon font
   ```
   dist/font/BpkIcon.ttf

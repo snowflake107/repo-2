@@ -85,11 +85,9 @@ For anything non-trivial, we strongly recommend speaking to somebody from Koala 
 <details>
 <summary>Run linters manually</summary>
 
-* `npm run lint` to lint both JS and SCSS.
+* `npm run lint` to lint JS.
 * `npm run lint:js` to lint JS.
 * `npm run lint:js:fix` to lint and try to automatically fix any errors.
-* `npm run lint:scss` to lint SCSS.
-* `npm run lint:scss:fix` to lint and try to automatically fix any SCSS errors.
 
 </details>
 

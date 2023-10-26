@@ -16,10 +16,10 @@
  * limitations under the License.
  */
 
-import { Transform } from 'stream';
+const { Transform } = require('stream');
 
-import { PluginError } from 'gulp-util';
-import loader from 'react-svg-loader';
+const { PluginError } = require('gulp-util');
+const loader = require('react-svg-loader');
 
 const PLUGIN_NAME = 'svg2react';
 

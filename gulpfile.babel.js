@@ -16,28 +16,23 @@
  * limitations under the License.
  */
 
-import punycode from 'punycode';
 import fs from 'fs';
+import punycode from 'punycode';
 
 import del from 'del';
-import _ from 'lodash';
 import gulp from 'gulp';
 import chmod from 'gulp-chmod';
 import clone from 'gulp-clone';
+import iconfont from 'gulp-iconfont';
 import rename from 'gulp-rename';
 import svgmin from 'gulp-svgmin';
-import concat from 'gulp-concat';
 import merge from 'merge-stream';
-import tinycolor from 'tinycolor2';
-import iconfont from 'gulp-iconfont';
 
-import baseColors from '@skyscanner/bpk-foundations-common/base/colors/aliases.json';
 import tokens from '@skyscanner/bpk-foundations-web/tokens/base.raw.json';
 
-import svg2react from './tasks/svg2react';
-import svg2datauri, { sassMap, svg2sassvar } from './tasks/svg2datauri';
 import getIconFontMetadataProvider from './tasks/getIconFontMetadataProvider';
 import metadata from './tasks/metadata';
+import svg2react from './tasks/svg2react';
 
 const remToPx = (value) => {
   let parsed = null;
@@ -50,14 +45,8 @@ const remToPx = (value) => {
 };
 
 const smallIconSize = tokens.props.ICON_SIZE_SM.value;
-const smallIconPxSize = remToPx(smallIconSize);
 const largeIconSize = tokens.props.ICON_SIZE_LG.value;
 const largeIconPxSize = remToPx(largeIconSize);
-
-const colors = _(baseColors.aliases)
-  .mapKeys((value, key) => _.kebabCase(key).toLowerCase())
-  .mapValues((value) => tinycolor(value).toHexString())
-  .value();
 
 const svgoCommonPlugins = [
   { name: 'removeTitle' },
@@ -73,75 +62,6 @@ const svgoCommonPlugins = [
 ];
 
 gulp.task('clean', () => del(['dist']));
-
-/*
-  ELEMENTS
-*/
-gulp.task('elements', () => {
-  const optimised = gulp
-    .src('src/elements/**/*.svg')
-    .pipe(chmod(0o644))
-    .pipe(
-      svgmin({
-        full: true,
-        plugins: [
-          ...svgoCommonPlugins,
-          {
-            name: 'removeAttrs',
-            params: {
-              attrs: ['id', 'class', 'data-name'],
-            },
-          },
-        ],
-      }),
-    )
-    .pipe(gulp.dest('src/elements'));
-
-  return optimised
-    .pipe(svg2datauri())
-    .pipe(concat('_elements.scss'))
-    .pipe(sassMap('bpk-elements'))
-    .pipe(gulp.dest('dist/scss'));
-});
-
-/*
-  SPINNERS
-*/
-gulp.task('optimise-svg-spinners', () => {
-  const optimised = gulp
-    .src('src/spinners/**/*.svg')
-    .pipe(chmod(0o644))
-    .pipe(
-      svgmin({
-        full: true,
-        plugins: [
-          ...svgoCommonPlugins,
-          {
-            name: 'removeAttrs',
-            params: {
-              attrs: [
-                'id',
-                'class',
-                'data-name',
-                'fill',
-                'fill-rule',
-                'width',
-                'height',
-              ],
-            },
-          },
-        ],
-      }),
-    )
-    .pipe(gulp.dest('src/spinners'));
-
-  return optimised
-    .pipe(clone())
-    .pipe(svg2datauri({ colors }))
-    .pipe(concat('_spinners.scss'))
-    .pipe(sassMap('bpk-spinners'))
-    .pipe(gulp.dest('dist/scss'));
-});
 
 const spinnerReactComponents = (size) => {
   const svgs = gulp.src(`src/spinners/**/${size}.svg`).pipe(chmod(0o644));
@@ -228,7 +148,6 @@ gulp.task('icons-common', () => merge(optimiseSvgs('sm'), optimiseSvgs('lg')));
 
 const iconReactComponents = (size) => {
   const iconSize = size === 'sm' ? smallIconSize : largeIconSize;
-  const iconPxSize = size === 'sm' ? smallIconPxSize : largeIconPxSize;
 
   const svgs = gulp.src(`src/icons/${size}/**/*.svg`).pipe(chmod(0o644));
 
@@ -258,47 +177,7 @@ const iconReactComponents = (size) => {
     .pipe(rename({ extname: '.js' }))
     .pipe(gulp.dest(`dist/js/icons/${size}`));
 
-  const datauri = svgs
-    .pipe(clone())
-    .pipe(
-      svgmin({
-        full: true,
-        plugins: [
-          {
-            name: 'addAttributesToSVGElement',
-            params: {
-              attribute: `width="${iconPxSize}" height="${iconPxSize}"`,
-            },
-          },
-        ],
-      }),
-    )
-    .pipe(svg2datauri({ colors }))
-    .pipe(concat(`_icons-${size}.scss`))
-    .pipe(sassMap(`bpk-icons-${size}`))
-    .pipe(gulp.dest('dist/scss'));
-
-  const rawDatauri = svgs
-    .pipe(clone())
-    .pipe(
-      svgmin({
-        full: true,
-        plugins: [
-          {
-            name: 'addAttributesToSVGElement',
-            params: {
-              attribute: `width="${iconPxSize}" height="${iconPxSize}"`,
-            },
-          },
-        ],
-      }),
-    )
-    .pipe(svg2sassvar())
-    .pipe(concat(`_icons-no-color-${size}.scss`))
-    .pipe(sassMap(`bpk-icons-no-color-${size}`))
-    .pipe(gulp.dest('dist/scss'));
-
-  return merge(react, datauri, rawDatauri);
+  return merge(react);
 };
 gulp.task('icons', () =>
   merge(iconReactComponents('sm'), iconReactComponents('lg')),
@@ -420,9 +299,6 @@ const allIcons = gulp.series(
   gulp.parallel('icons', iconFonts, 'copy-svgs'),
 );
 
-const allSpinners = gulp.series('optimise-svg-spinners', 'spinners');
+const allSpinners = gulp.task('spinners');
 
-gulp.task(
-  'default',
-  gulp.parallel('elements', allSpinners, allIcons, 'create-metadata'),
-);
+gulp.task('default', gulp.parallel(allSpinners, allIcons, 'create-metadata'));
