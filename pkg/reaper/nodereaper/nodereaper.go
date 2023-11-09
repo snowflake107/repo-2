@@ -55,9 +55,6 @@ const (
 	drainFailedMetric          = "DrainFailedAgeExpiredNode"
 	terminationReasonUnhealthy = "TerminateUnhealthyNode"
 	terminationReasonHealthy   = "TerminateAgeExpiredNode"
-
-	unschedulableTaintKey = "node.kubernetes.io/unschedulable"
-	unschedulableTaintVal = "NoSchedule"
 )
 
 // Validate command line arguments
