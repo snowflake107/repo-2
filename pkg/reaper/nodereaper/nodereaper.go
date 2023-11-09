@@ -55,6 +55,9 @@ const (
 	drainFailedMetric          = "DrainFailedAgeExpiredNode"
 	terminationReasonUnhealthy = "TerminateUnhealthyNode"
 	terminationReasonHealthy   = "TerminateAgeExpiredNode"
+
+	unschedulableTaintKey = "node.kubernetes.io/unschedulable"
+	unschedulableTaintVal = "NoSchedule"
 )
 
 // Validate command line arguments
@@ -536,8 +539,11 @@ func (ctx *ReaperContext) reapOldNodes(gctx context.Context, w ReaperAwsAuth) er
 
 		// Skip if target node is self
 		if instance.NodeName == ctx.SelfNode {
-			log.Infof("self node termination attempted, skipping")
+			log.Infof("self node termination attempted, cordoning")
+
+			ctx.cordonNode(instance.NodeName, ctx.DryRun, ctx.IgnoreFailure)
 			ctx.labelNode(instance.NodeName, "governor.keikoproj.io/status", "current-node")
+
 			continue
 		}
 
