@@ -534,7 +534,7 @@ func (ctx *ReaperContext) reapOldNodes(gctx context.Context, w ReaperAwsAuth) er
 			return nil
 		}
 
-		// Skip if target node is self
+		// Cordon the node if governor is running on it, for next loop
 		if instance.NodeName == ctx.SelfNode {
 			log.Infof("self node termination attempted, cordoning")
 
@@ -681,7 +681,7 @@ func (ctx *ReaperContext) reapUnhealthyNodes(gctx context.Context, w ReaperAwsAu
 			return nil
 		}
 
-		// Skip if target node is self
+		// Cordon the node if governor is running on it, for next loop
 		if instance.NodeName == ctx.SelfNode {
 			log.Infof("self node termination attempted, cordoning")
 
