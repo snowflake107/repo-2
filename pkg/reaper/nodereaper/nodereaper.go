@@ -681,6 +681,16 @@ func (ctx *ReaperContext) reapUnhealthyNodes(gctx context.Context, w ReaperAwsAu
 			return nil
 		}
 
+		// Skip if target node is self
+		if instance.NodeName == ctx.SelfNode {
+			log.Infof("self node termination attempted, cordoning")
+
+			ctx.cordonNode(instance.NodeName, ctx.DryRun, ctx.IgnoreFailure)
+			ctx.labelNode(instance.NodeName, "governor.keikoproj.io/status", "current-node")
+
+			continue
+		}
+
 		if ctx.AsgValidation && instance.RequiresValidation {
 			// Skip nodes which are on unstable ASG
 			stable, err := autoScalingGroupIsStable(w, instance.InstanceID)
