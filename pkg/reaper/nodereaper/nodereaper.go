@@ -534,10 +534,13 @@ func (ctx *ReaperContext) reapOldNodes(gctx context.Context, w ReaperAwsAuth) er
 			return nil
 		}
 
-		// Skip if target node is self
+		// Cordon the node if governor is running on it, for next loop
 		if instance.NodeName == ctx.SelfNode {
-			log.Infof("self node termination attempted, skipping")
+			log.Infof("self node termination attempted, cordoning")
+
+			ctx.cordonNode(instance.NodeName, ctx.DryRun, ctx.IgnoreFailure)
 			ctx.labelNode(instance.NodeName, "governor.keikoproj.io/status", "current-node")
+
 			continue
 		}
 
@@ -676,6 +679,16 @@ func (ctx *ReaperContext) reapUnhealthyNodes(gctx context.Context, w ReaperAwsAu
 		if ctx.TerminatedInstances >= ctx.MaxKill {
 			log.Infof("max kill nodes reached, %v/%v nodes have been terminated in current run", ctx.TerminatedInstances, ctx.MaxKill)
 			return nil
+		}
+
+		// Cordon the node if governor is running on it, for next loop
+		if instance.NodeName == ctx.SelfNode {
+			log.Infof("self node termination attempted, cordoning")
+
+			ctx.cordonNode(instance.NodeName, ctx.DryRun, ctx.IgnoreFailure)
+			ctx.labelNode(instance.NodeName, "governor.keikoproj.io/status", "current-node")
+
+			continue
 		}
 
 		if ctx.AsgValidation && instance.RequiresValidation {

@@ -122,6 +122,21 @@ func runCommandWithContext(gctx context.Context, call string, args []string, tim
 	return string(out), nil
 }
 
+func (ctx *ReaperContext) cordonNode(name string, dryRun bool, ignoreDrainFailure bool) error {
+	cordonArgs := []string{"cordon", name}
+	cordonCommand := ctx.KubectlLocalPath
+	if dryRun || ignoreDrainFailure {
+		log.Warnf("dry run / ignore drain failure is on, instance %v remains uncordoned", name)
+		return nil
+	}
+	_, err := runCommand(cordonCommand, cordonArgs)
+	if err != nil {
+		log.Errorf("failed to cordon node %v", name)
+		return err
+	}
+	return nil
+}
+
 func (ctx *ReaperContext) uncordonNode(name string, dryRun bool, ignoreDrainFailure bool) error {
 	uncordonArgs := []string{"uncordon", name}
 	uncordonCommand := ctx.KubectlLocalPath
