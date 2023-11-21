@@ -74,5 +74,6 @@ func init() {
 	nodeReapCmd.Flags().StringVar(&nodeReaperArgs.ClusterID, "cluster-id", "", "Unique cluster identifier; used for node reaper locks")
 	nodeReapCmd.Flags().StringVar(&nodeReaperArgs.LocksTableName, "locks-table-name", "", "DynamoDB table name for storing the lock objects (default not set)")
 	nodeReapCmd.Flags().Int64Var(&nodeReaperArgs.LockExpirationSeconds, "lock-expiration-seconds", 0, "Expire locks after this time. Zero means no expiration.")
-	nodeReapCmd.Flags().BoolVar(&nodeReaperArgs.DeregisterFromLoadBalancer, "deregister-from-load-balancer", false, "Deregistes the node from the load balancer during draining.")
+	nodeReapCmd.Flags().BoolVar(&nodeReaperArgs.DeregisterFromLoadBalancer, "deregister-from-load-balancer", false, "Deregisters the node from the load balancer during draining.")
+	nodeReapCmd.Flags().BoolVar(&nodeReaperArgs.RandomizeReapOrder, "randomize-reap-order", false, "Randomizes the reap order of nodes to ensure that bad nodes will not cause governor to be 'stuck'")
 }
