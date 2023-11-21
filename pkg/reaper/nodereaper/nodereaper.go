@@ -18,6 +18,7 @@ package nodereaper
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"os"
 	"reflect"
 	"strings"
@@ -84,6 +85,7 @@ func (ctx *ReaperContext) validateArguments(args *Args) error {
 	ctx.NodeHealthcheckIntervalSeconds = args.NodeHealthcheckIntervalSeconds
 	ctx.NodeHealthcheckTimeoutSeconds = args.NodeHealthcheckTimeoutSeconds
 	ctx.DeregisterFromLoadBalancer = args.DeregisterFromLoadBalancer
+	ctx.RandomizeReapOrder = args.RandomizeReapOrder
 
 	log.Infof("AWS Region = %v", ctx.EC2Region)
 	log.Infof("Dry Run = %t", ctx.DryRun)
@@ -522,9 +524,16 @@ func (ctx *ReaperContext) deriveReapableNodes() error {
 }
 
 func (ctx *ReaperContext) reapOldNodes(gctx context.Context, w ReaperAwsAuth) error {
+	if ctx.RandomizeReapOrder {
+		rand.Shuffle(len(ctx.AgeDrainReapableInstances), func(i, j int) {
+			ctx.AgeDrainReapableInstances[i], ctx.AgeDrainReapableInstances[j] = ctx.AgeDrainReapableInstances[j], ctx.AgeDrainReapableInstances[i]
+		})
+	}
+
 	for _, instance := range ctx.AgeDrainReapableInstances {
 		ctx.AgeKillOrder = append(ctx.AgeKillOrder, instance.NodeName)
 	}
+
 	log.Infof("Kill order: %v", ctx.AgeKillOrder)
 
 	for _, instance := range ctx.AgeDrainReapableInstances {
@@ -674,6 +683,13 @@ func (ctx *ReaperContext) reapOldNodes(gctx context.Context, w ReaperAwsAuth) er
 }
 
 func (ctx *ReaperContext) reapUnhealthyNodes(gctx context.Context, w ReaperAwsAuth) error {
+	// randomize slice of instances so that we are unlikely to get the same un-killable node twice
+	if ctx.RandomizeReapOrder {
+		rand.Shuffle(len(ctx.AgeDrainReapableInstances), func(i, j int) {
+			ctx.ReapableInstances[i], ctx.ReapableInstances[j] = ctx.ReapableInstances[j], ctx.ReapableInstances[i]
+		})
+	}
+
 	for _, instance := range ctx.ReapableInstances {
 
 		if ctx.TerminatedInstances >= ctx.MaxKill {

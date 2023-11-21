@@ -74,6 +74,7 @@ type Args struct {
 	LocksTableName                 string
 	LockExpirationSeconds          int64
 	DeregisterFromLoadBalancer     bool
+	RandomizeReapOrder             bool
 }
 
 // ReaperContext holds the context of the node-reaper and target cluster
@@ -114,6 +115,7 @@ type ReaperContext struct {
 	LocksTableName                 string
 	LockExpirationSeconds          int64
 	DeregisterFromLoadBalancer     bool
+	RandomizeReapOrder             bool
 	// runtime
 	UnreadyNodes              []v1.Node
 	AllNodes                  []v1.Node
