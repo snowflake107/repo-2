@@ -565,6 +565,7 @@ func nodeMeetsReapAfterThreshold(minuteThreshold float64, minutesSinceTransition
 func isControlPlane(gctx context.Context, node string, kubeClient kubernetes.Interface) (bool, error) {
 	corev1 := kubeClient.CoreV1()
 	nodeObject, err := corev1.Nodes().Get(gctx, node, metav1.GetOptions{})
+
 	if err != nil {
 		log.Errorf("failed to get node, %v", err)
 		return false, err
@@ -637,6 +638,7 @@ func (ctx *ReaperContext) getNodes(gctx context.Context, nodeType NodeSelector) 
 
 func (ctx *ReaperContext) allNodesAreReady(gctx context.Context) (bool, error) {
 	nodeList, err := ctx.getNodes(gctx, nodeSelectorAll)
+
 	if err != nil {
 		log.Errorf("failed to list all nodes, %v", err)
 		return false, err

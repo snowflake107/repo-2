@@ -842,6 +842,7 @@ func (ctx *ReaperContext) scan(gctx context.Context, w ReaperAwsAuth) error {
 	log.Infof("Self Pod Namespace = %v", ctx.SelfNamespace)
 
 	nodeList, err := corev1.Nodes().List(gctx, metav1.ListOptions{})
+
 	if err != nil {
 		log.Errorf("failed to list all nodes, %v", err)
 		return err
@@ -849,6 +850,7 @@ func (ctx *ReaperContext) scan(gctx context.Context, w ReaperAwsAuth) error {
 	ctx.AllNodes = nodeList.Items
 
 	podList, err := corev1.Pods("").List(gctx, metav1.ListOptions{})
+
 	if err != nil {
 		log.Errorf("failed to list all pods, %v", err)
 		return err
@@ -1006,7 +1008,7 @@ func hasSkipLabel(node v1.Node, label string) bool {
 }
 
 func reconsiderUnreapableNode(node v1.Node, reapableAfter float64) bool {
-	//For backward compatibilty
+	//For backward compatibility
 	if nodeHasAnnotation(node, ageUnreapableAnnotationKey, "true") {
 		return true
 	}
