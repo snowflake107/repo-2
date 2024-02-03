@@ -685,7 +685,7 @@ func (ctx *ReaperContext) reapOldNodes(gctx context.Context, w ReaperAwsAuth) er
 func (ctx *ReaperContext) reapUnhealthyNodes(gctx context.Context, w ReaperAwsAuth) error {
 	// randomize slice of instances so that we are unlikely to get the same un-killable node twice
 	if ctx.RandomizeReapOrder {
-		rand.Shuffle(len(ctx.AgeDrainReapableInstances), func(i, j int) {
+		rand.Shuffle(len(ctx.ReapableInstances), func(i, j int) {
 			ctx.ReapableInstances[i], ctx.ReapableInstances[j] = ctx.ReapableInstances[j], ctx.ReapableInstances[i]
 		})
 	}
