@@ -1,3 +1,7 @@
+# 0.4.1-plaid-19
+
+[bugfix] Fix a panic in reaping unhealthy nodes
+
 # 0.4.1-plaid-18
 
 [deps] Merge upstream into fork
