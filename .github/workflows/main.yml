@@ -28,7 +28,7 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
 
       - name: Upload to Cache
-        uses: actions/cache@v3.3.3
+        uses: actions/cache@v4.0.0
         id: npm-cache
         with:
           path: |
