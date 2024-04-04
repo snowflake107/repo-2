@@ -21,7 +21,7 @@ description: This is the home page of Audition APIs
 
 Support custom file formats, convert to and from multitrack sessions, and integrate custom control surfaces. Automate complex tasks, connect to web services, and add panels that seamlessly fit into the editing workspace.
 
-* [Get the SDKs](https://console.adobe.io/downloads/au)
+* [Get the SDKs](https://developer.adobe.com/console/servicesandapis/au)
 
 
 
