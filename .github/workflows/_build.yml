@@ -27,7 +27,7 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
 
       - name: Restore Cache
-        uses: actions/cache/restore@v4.0.1
+        uses: actions/cache/restore@v4.0.2
         id: npm-cache
         with:
           path: |
