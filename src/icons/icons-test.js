@@ -1,5 +1,5 @@
-import fs from 'fs';
-import path from 'path';
+const fs = require("fs");
+const path = require("path");
 
 // In order for the docs site to serve a zip-file containing all icon SVGs, the `zip-it-loader` loader
 // must be provided with an empty file within the icons directory.
