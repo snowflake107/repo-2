@@ -62,7 +62,7 @@
     "lodash": "^4.17.20",
     "ordered-read-streams": "^2.0.0",
     "through2": "^4.0.2",
-    "typescript": "^5.4.5",
+    "typescript": "^5.5.2",
     "camelcase": "^8.0.0"
   }
 }
