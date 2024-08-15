@@ -101,6 +101,6 @@ We’ve found that one of the greatest challenges our customers have is navigati
 ## Subscribe to the Creative Cloud developer newsletter 
 
 A monthly newsletter featuring news for anyone who creates, develops, or build plugins, extensions, or integrations for the
-Creative Cloud family of products.
+Creative Cloud family of products. ✅
 
 * [Subscribe to the newsletter](https://www.adobe.com/subscription/ccdevnewsletter.html)
