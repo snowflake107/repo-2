@@ -252,7 +252,7 @@ jobs:
         \ is only supported for tags!\"\n  exit 1\nfi"
     - continue-on-error: true
       name: Checkout Repository
-      uses: actions/checkout@v4.1.1
+      uses: actions/checkout@v4.2.1
     - continue-on-error: true
       id: parse
       name: Parse Version from package.json
@@ -510,7 +510,7 @@ jobs:
         sudo sh -c ''echo 1 > /proc/sys/net/ipv4/ip_forward'''
     - continue-on-error: true
       name: Checkout Repository
-      uses: actions/checkout@v4.1.1
+      uses: actions/checkout@v4.2.1
     - continue-on-error: true
       name: Download Artifacts
       uses: actions/download-artifact@v4.1.4
