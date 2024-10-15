@@ -251,7 +251,7 @@ jobs:
       uses: actions/checkout@v4.1.1
     - continue-on-error: true
       name: Download Artifacts
-      uses: actions/download-artifact@v4.1.4
+      uses: actions/download-artifact@v4.1.8
       with:
         name: assembled-frontend-node${{ inputs.node-version-package }}
     - continue-on-error: true
