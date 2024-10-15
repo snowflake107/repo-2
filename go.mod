@@ -3,7 +3,7 @@ module github.com/paketo-buildpacks/rails-assets
 go 1.16
 
 require (
-	github.com/BurntSushi/toml v1.3.2
+	github.com/BurntSushi/toml v1.4.0
 	github.com/PuerkitoBio/goquery v1.8.1
 	github.com/onsi/gomega v1.27.8
 	github.com/paketo-buildpacks/occam v0.17.0
