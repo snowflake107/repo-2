@@ -262,7 +262,7 @@ jobs:
     - continue-on-error: true
       id: npm-cache
       name: Restore Cache
-      uses: actions/cache/restore@v4.0.2
+      uses: actions/cache/restore@v4.1.1
       with:
         key: ${{ env.CACHE_NAME }}-${{ hashFiles('package-lock.json') }}
         path: 'node_modules/

@@ -261,7 +261,7 @@ jobs:
     - continue-on-error: true
       id: npm-cache
       name: Upload to Cache
-      uses: actions/cache@v4.0.2
+      uses: actions/cache@v4.1.1
       with:
         key: ${{ env.CACHE_NAME }}-${{ hashFiles('package-lock.json') }}
         path: 'node_modules/
