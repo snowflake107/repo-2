@@ -588,7 +588,7 @@ jobs:
         '
     - continue-on-error: true
       name: Login to Azure
-      uses: azure/login@ec3c14589bd3e9312b3cc8c41e6860e258df9010
+      uses: azure/login@a65d910e8af852a8061c627c456678983e180302
       with:
         creds: ${{ secrets.AZURE_PR_SP_CREDS }}
     - continue-on-error: true
