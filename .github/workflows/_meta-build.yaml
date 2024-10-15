@@ -293,7 +293,7 @@ jobs:
     - continue-on-error: true
       if: ${{ inputs.publish-container }}
       name: Run Trivy Vulnerability Scanner
-      uses: aquasecurity/trivy-action@0.18.0
+      uses: aquasecurity/trivy-action@0.27.0
       with:
         format: sarif
         ignore-unfixed: true
