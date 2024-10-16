@@ -313,7 +313,7 @@ jobs:
     - continue-on-error: true
       run: rm -rf ./coverage/
     - continue-on-error: true
-      uses: helm/kind-action@v1.5.0
+      uses: helm/kind-action@v1.10.0
     - continue-on-error: true
       env:
         BASHCOV_COMMAND_NAME: helm-secrets:it
@@ -571,7 +571,7 @@ jobs:
 
         sudo sh -c ''echo 1 > /proc/sys/net/ipv4/ip_forward'''
     - continue-on-error: true
-      uses: helm/kind-action@v1.5.0
+      uses: helm/kind-action@v1.10.0
     - continue-on-error: true
       run: kubectl cluster-info
     - continue-on-error: true
