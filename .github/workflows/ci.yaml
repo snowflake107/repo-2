@@ -273,7 +273,7 @@ jobs:
         version: ${{ env.VERSION_SOPS }}
     - continue-on-error: true
       name: Setup vals
-      uses: jkroepke/setup-vals@v1.0.5
+      uses: jkroepke/setup-vals@v1.1.3
       with:
         version: ${{ env.VERSION_VALS }}
     - continue-on-error: true
@@ -590,7 +590,7 @@ jobs:
         version: ${{ env.VERSION_SOPS }}
     - continue-on-error: true
       name: Setup vals
-      uses: jkroepke/setup-vals@v1.0.5
+      uses: jkroepke/setup-vals@v1.1.3
       with:
         version: ${{ env.VERSION_VALS }}
     - continue-on-error: true
