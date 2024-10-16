@@ -11,7 +11,7 @@ require (
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751 // indirect
 	github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d // indirect
 	github.com/avast/retry-go v2.6.0+incompatible
-	github.com/aws/aws-sdk-go v1.40.9
+	github.com/aws/aws-sdk-go v1.55.5
 	github.com/beevik/etree v1.0.1
 	github.com/danieljoos/wincred v1.1.0
 	github.com/dvsekhvalnov/jose2go v1.5.0 // indirect
