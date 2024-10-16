@@ -276,7 +276,7 @@ jobs:
         images: ${{ github.repository_owner }}/governor
     - continue-on-error: true
       name: Build and push
-      uses: docker/build-push-action@v5
+      uses: docker/build-push-action@v6
       with:
         context: .
         file: ./Dockerfile
