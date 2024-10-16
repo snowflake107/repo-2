@@ -250,7 +250,7 @@ jobs:
       uses: actions/checkout@v4
     - continue-on-error: true
       name: Set go version
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@v5
       with:
         go-version-file: go.mod
     - continue-on-error: true
