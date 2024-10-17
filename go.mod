@@ -5,7 +5,7 @@ go 1.16
 replace google.golang.org/grpc => google.golang.org/grpc v1.29.1
 
 require (
-	github.com/Laisky/graphql v1.0.5
+	github.com/Laisky/graphql v1.0.6
 	github.com/Masterminds/sprig/v3 v3.2.2
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/aws/aws-sdk-go v1.31.15 // indirect
@@ -49,7 +49,7 @@ require (
 	github.com/spf13/cobra v0.0.0-20170905172051-b78744579491
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.8.1
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.7.1
 	github.com/urfave/cli v1.22.5
 	github.com/urfave/negroni v0.3.0
 	github.com/xanzy/go-gitlab v0.50.2
